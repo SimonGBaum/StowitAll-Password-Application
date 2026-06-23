@@ -1,0 +1,35 @@
+:root {
+  /* Color */
+  --color-bg-main:      #1A222A;
+  --color-primary:      #2D6A4F;
+  --color-secondary:    #E0A96D;
+  --color-glow-safe:    #52B788;
+  --color-bg-error:     #221E1F;
+  --color-accent-error: #E63946;
+
+  /* Typography */
+  --font-display: 'Cinzel', 'Cormorant Garamond', Georgia, serif;
+  --font-ui:      'Inter', system-ui, sans-serif;
+
+  /* Type scale */
+  --text-page-title: 2.5rem;
+  --text-h2:         1.75rem;
+  --text-h3:         1.25rem;
+  --text-nav:        0.9375rem;
+  --text-body:       1rem;
+  --text-meta:       0.8125rem;
+
+  /* Spacing (4px base grid) */
+  --space-sm:     8px;
+  --space-md:     16px;
+  --space-lg:     32px;
+  --space-page-x: 48px;
+  --space-page-y: 32px;
+  --max-content:  960px;
+
+  /* Layout */
+  --header-height: 64px;
+  --footer-height: 52px;
+  --radius-sm:     4px;
+  --radius-md:     6px;
+}

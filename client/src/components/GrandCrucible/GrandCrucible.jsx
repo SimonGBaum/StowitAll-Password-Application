@@ -1,0 +1,163 @@
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { usePasswords } from '../../context/PasswordContext';
+import { useSmokyVeil } from '../../context/SmokyVeilContext';
+import { useToast } from '../../context/ToastContext';
+import { Button } from '../Button/Button';
+import styles from './GrandCrucible.module.css';
+
+const SWIRL_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+const SWIRL_DURATION = 400;
+
+function randomChar() {
+  return SWIRL_CHARS[Math.floor(Math.random() * SWIRL_CHARS.length)];
+}
+
+export function GrandCrucible({ onPasswordForged }) {
+  const [length, setLength] = useState(16);
+  const [uppercase, setUppercase] = useState(true);
+  const [lowercase, setLowercase] = useState(true);
+  const [numbers, setNumbers] = useState(true);
+  const [symbols, setSymbols] = useState(true);
+  const [constraintMsg, setConstraintMsg] = useState('');
+  const [forgeState, setForgeState] = useState('idle'); // idle | forging | resolved
+  const [output, setOutput] = useState('');
+  const [swirlDisplay, setSwirlDisplay] = useState('');
+
+  const { forgePassword } = usePasswords();
+  const { triggerVeil } = useSmokyVeil();
+  const { addToast } = useToast();
+
+  const swirlIntervalRef = useRef(null);
+  const forgeTimeoutRef = useRef(null);
+  const pendingPasswordRef = useRef('');
+  const prefersReduced = typeof window !== 'undefined'
+    ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    : false;
+
+  const handleToggle = (setter, current) => {
+    const next = !current;
+    const counts = {
+      uppercase: uppercase, lowercase: lowercase, numbers: numbers, symbols: symbols
+    };
+    const key = setter === setUppercase ? 'uppercase'
+               : setter === setLowercase ? 'lowercase'
+               : setter === setNumbers   ? 'numbers' : 'symbols';
+    const projected = { ...counts, [key]: next };
+    if (!Object.values(projected).some(Boolean)) {
+      setConstraintMsg('At least one component must remain active.');
+      setTimeout(() => setConstraintMsg(''), 2500);
+      return;
+    }
+    setConstraintMsg('');
+    setter(next);
+  };
+
+  const resolveForge = useCallback((password) => {
+    clearInterval(swirlIntervalRef.current);
+    clearTimeout(forgeTimeoutRef.current);
+    setForgeState('resolved');
+    setOutput(password);
+    setSwirlDisplay('');
+    if (onPasswordForged) onPasswordForged(password);
+    triggerVeil(() => {});
+  }, [triggerVeil, onPasswordForged]);
+
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && forgeState === 'forging') {
+        resolveForge(pendingPasswordRef.current);
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [forgeState, resolveForge]);
+
+  const handleForge = () => {
+    const components = { length, uppercase, lowercase, numbers, symbols };
+    const password = forgePassword(components);
+    pendingPasswordRef.current = password;
+
+    if (prefersReduced) {
+      setOutput(password);
+      setForgeState('resolved');
+      if (onPasswordForged) onPasswordForged(password);
+      triggerVeil(() => {});
+      return;
+    }
+
+    setForgeState('forging');
+    setSwirlDisplay(Array.from({ length }, randomChar).join(''));
+
+    swirlIntervalRef.current = setInterval(() => {
+      setSwirlDisplay(Array.from({ length }, randomChar).join(''));
+    }, 60);
+
+    forgeTimeoutRef.current = setTimeout(() => {
+      resolveForge(password);
+    }, SWIRL_DURATION);
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(output).then(() => {
+      addToast('Credential copied. Guard it well.', 'info');
+    });
+  };
+
+  return (
+    <div className={styles.crucible}>
+      <div className={styles.header}>
+        <span className={styles.title}>The Grand Crucible</span>
+        <span className={styles.subtitle}>Configure your Components and click Forge.</span>
+      </div>
+
+      <div className={styles.components}>
+        <div className={styles.sliderRow}>
+          <span className={styles.sliderLabel}>Length</span>
+          <input
+            type="range" min={8} max={64} step={1} value={length}
+            onChange={(e) => setLength(Number(e.target.value))}
+            className={styles.slider}
+            aria-label="Password length"
+          />
+          <span className={styles.sliderValue}>{length}</span>
+        </div>
+
+        {[
+          { label: 'Uppercase (A–Z)', checked: uppercase, setter: setUppercase, id: 'uc' },
+          { label: 'Lowercase (a–z)', checked: lowercase, setter: setLowercase, id: 'lc' },
+          { label: 'Numbers (0–9)',   checked: numbers,   setter: setNumbers,   id: 'nm' },
+          { label: 'Symbols (!@#$…)', checked: symbols,   setter: setSymbols,   id: 'sy' },
+        ].map(({ label, checked, setter, id }) => (
+          <div key={id} className={styles.checkboxRow}>
+            <input type="checkbox" id={`crucible-${id}`} checked={checked}
+              onChange={() => handleToggle(setter, checked)} />
+            <label htmlFor={`crucible-${id}`}>{label}</label>
+          </div>
+        ))}
+
+        <p className={styles.constraintMsg}>{constraintMsg}</p>
+      </div>
+
+      <Button variant="full-width" onClick={handleForge} disabled={forgeState === 'forging'}>
+        Forge
+      </Button>
+
+      <div className={styles.outputRow}>
+        <div className={`${styles.outputField} ${forgeState === 'forging' ? styles.forging : ''}`}>
+          {forgeState === 'forging' ? (
+            <span className={styles.swirlChar}>{swirlDisplay}</span>
+          ) : output ? (
+            <span>{output}</span>
+          ) : (
+            <span className={styles.placeholder}>Your forged credential will appear here.</span>
+          )}
+        </div>
+        {output && (
+          <button type="button" className={styles.copyBtn} onClick={handleCopy} aria-label="Copy credential to clipboard">
+            Copy
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}

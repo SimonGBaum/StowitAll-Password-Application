@@ -1,0 +1,122 @@
+.titleRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.pageTitle {
+  font-family: var(--font-display);
+  font-size: var(--text-page-title);
+  color: var(--color-secondary);
+}
+
+.actionRow {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.searchPanel {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.3s ease;
+}
+
+.searchPanel.open {
+  max-height: 300px;
+}
+
+.searchPanelInner {
+  display: flex;
+  gap: var(--space-md);
+  padding-bottom: var(--space-md);
+}
+
+.searchPanelInner > * {
+  flex: 1;
+}
+
+.tableWrapper {
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  margin-bottom: var(--space-md);
+}
+
+.tableHeader {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--color-primary);
+  background: #1E2D24;
+}
+
+.tableHeader span {
+  font-family: var(--font-ui);
+  font-size: var(--text-nav);
+  font-weight: 500;
+  color: var(--color-secondary);
+}
+
+.tableRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  padding: var(--space-sm) var(--space-md);
+  cursor: pointer;
+  border-bottom: 1px solid rgba(45, 106, 79, 0.2);
+  transition: background 0.1s ease;
+}
+
+.tableRow:nth-child(even) { background: #1E2D24; }
+.tableRow:nth-child(odd)  { background: var(--color-bg-main); }
+.tableRow:last-child { border-bottom: none; }
+.tableRow:hover { background: rgba(45, 106, 79, 0.1); }
+
+.tableRow.selected {
+  border-left: 3px solid var(--color-primary);
+}
+
+.tableRow span {
+  font-family: var(--font-ui);
+  font-size: var(--text-nav);
+  color: #ffffff;
+  align-self: center;
+}
+
+.emptyState {
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  font-style: italic;
+  color: var(--color-secondary);
+  text-align: center;
+  padding: var(--space-lg);
+}
+
+.inlineForm {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.3s ease;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  background: #1E2D24;
+  margin-bottom: var(--space-md);
+}
+
+.inlineForm.open {
+  max-height: 400px;
+}
+
+.inlineFormInner {
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.inlineFormActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}

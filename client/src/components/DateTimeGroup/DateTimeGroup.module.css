@@ -1,0 +1,7 @@
+.dtg {
+  font-family: var(--font-ui);
+  font-size: var(--text-meta);
+  color: var(--color-secondary);
+  white-space: nowrap;
+  user-select: none;
+}

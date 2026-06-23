@@ -1,0 +1,55 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.label {
+  font-family: var(--font-ui);
+  font-size: var(--text-nav);
+  font-weight: 400;
+  color: #ffffff;
+}
+
+.field {
+  background: #242b32;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  color: #ffffff;
+  font-family: var(--font-ui);
+  font-size: var(--text-nav);
+  padding: var(--space-sm) var(--space-md);
+  width: 100%;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.field::placeholder {
+  color: #888888;
+}
+
+.field:focus {
+  border-color: var(--color-secondary);
+  box-shadow: 0 0 6px var(--color-glow-safe);
+}
+
+.field:focus-visible {
+  border-color: var(--color-secondary);
+  box-shadow: 0 0 6px var(--color-glow-safe);
+}
+
+.field.error {
+  border-color: var(--color-accent-error);
+}
+
+.field:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.errorText {
+  font-family: var(--font-ui);
+  font-size: 0.8125rem;
+  color: var(--color-accent-error);
+}

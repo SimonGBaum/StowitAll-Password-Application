@@ -1,0 +1,31 @@
+.pageTitle {
+  font-family: var(--font-display);
+  font-size: var(--text-page-title);
+  color: var(--color-secondary);
+  text-align: center;
+  margin-bottom: var(--space-lg);
+}
+
+.fields {
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-md);
+  margin-top: var(--space-lg);
+}
+
+.confirmPwField {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.2s ease;
+}
+
+.confirmPwField.visible {
+  max-height: 100px;
+}

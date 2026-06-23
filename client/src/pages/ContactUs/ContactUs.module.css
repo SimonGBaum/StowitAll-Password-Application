@@ -1,0 +1,49 @@
+.homeBtn {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--space-lg);
+}
+
+.intro {
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  color: #ffffff;
+  text-align: center;
+  margin-bottom: var(--space-lg);
+  line-height: 1.6;
+}
+
+.contactList {
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.contactItem {
+  display: flex;
+  gap: var(--space-md);
+  align-items: baseline;
+  border-bottom: 1px solid rgba(45, 106, 79, 0.3);
+  padding-bottom: var(--space-sm);
+}
+
+.contactLabel {
+  font-family: var(--font-ui);
+  font-size: var(--text-nav);
+  font-weight: 500;
+  color: var(--color-secondary);
+  min-width: 80px;
+}
+
+.contactValue {
+  font-family: var(--font-ui);
+  font-size: var(--text-nav);
+  color: #ffffff;
+}
+
+.contactValue:hover {
+  text-decoration: underline;
+  color: var(--color-glow-safe);
+}

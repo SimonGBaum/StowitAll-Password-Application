@@ -1,39 +1,106 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState } from 'react';
-
-// TODO: back-end phase — replace with real encrypted API calls
-const MOCK_RECORDS = [
-  { id: '1', passwordName: 'GitHub',   siteName: 'GitHub, Inc.',  password: '••••••••', dateCreated: '2026-01-14' },
-  { id: '2', passwordName: 'Netflix',  siteName: 'Netflix, Inc.', password: '••••••••', dateCreated: '2026-03-02' },
-  { id: '3', passwordName: 'Work VPN', siteName: 'Acme Corp.',    password: '••••••••', dateCreated: '2026-06-01' },
-];
+import { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../lib/supabaseClient';
+import { encryptPassword, decryptPassword } from '../lib/crypto';
+import { useAuth } from './AuthContext';
 
 export const PasswordContext = createContext(null);
 
-export function PasswordProvider({ children }) {
-  const [records, setRecords] = useState(MOCK_RECORDS);
+// Maps a DB row → the shape the UI expects
+async function rowToRecord(row, userId) {
+  let password = '';
+  try {
+    password = await decryptPassword(row.encrypted_password, userId);
+  } catch {
+    password = '[decryption error]';
+  }
+  return {
+    id: row.id,
+    passwordName: row.password_name,
+    siteName: row.site_name,
+    siteUrl: row.site_url ?? '',
+    siteUsername: row.username,
+    password,
+    notes: row.notes ?? '',
+    dateCreated: row.created_at.split('T')[0],
+  };
+}
 
-  const addRecord = async (record) => { // TODO: back-end phase
-    const newRecord = {
-      id: String(Date.now()),
-      ...record,
-      dateCreated: new Date().toISOString().split('T')[0],
-    };
-    setRecords((prev) => [...prev, newRecord]);
+export function PasswordProvider({ children }) {
+  const { user } = useAuth();
+  const [records, setRecords] = useState([]);
+
+  useEffect(() => {
+    if (!user) { setRecords([]); return; }
+
+    supabase
+      .from('password_entries')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .then(async ({ data, error }) => {
+        if (error || !data) return;
+        const mapped = await Promise.all(data.map((row) => rowToRecord(row, user.id)));
+        setRecords(mapped);
+      });
+  }, [user]);
+
+  const addRecord = async (record) => {
+    const encrypted = await encryptPassword(record.password, user.id);
+    const { data, error } = await supabase
+      .from('password_entries')
+      .insert({
+        user_id: user.id,
+        password_name: record.passwordName,
+        site_name: record.siteName,
+        site_url: record.siteUrl || null,
+        username: record.siteUsername || '',
+        encrypted_password: encrypted,
+        notes: record.notes || null,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    const newRecord = await rowToRecord(data, user.id);
+    setRecords((prev) => [newRecord, ...prev]);
     return newRecord;
   };
 
-  const updateRecord = async (id, changes) => { // TODO: back-end phase
+  const updateRecord = async (id, changes) => {
+    const updates = {};
+    if (changes.passwordName !== undefined) updates.password_name = changes.passwordName;
+    if (changes.siteName !== undefined)     updates.site_name     = changes.siteName;
+    if (changes.siteUrl !== undefined)      updates.site_url      = changes.siteUrl || null;
+    if (changes.siteUsername !== undefined) updates.username      = changes.siteUsername;
+    if (changes.notes !== undefined)        updates.notes         = changes.notes || null;
+    if (changes.password !== undefined) {
+      updates.encrypted_password = await encryptPassword(changes.password, user.id);
+    }
+
+    const { error } = await supabase
+      .from('password_entries')
+      .update(updates)
+      .eq('id', id);
+
+    if (error) throw error;
+
     setRecords((prev) =>
       prev.map((r) => (r.id === id ? { ...r, ...changes } : r))
     );
   };
 
-  const deleteRecord = async (id) => { // TODO: back-end phase
+  const deleteRecord = async (id) => {
+    const { error } = await supabase
+      .from('password_entries')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
     setRecords((prev) => prev.filter((r) => r.id !== id));
   };
 
-  const forgePassword = (components) => { // TODO: back-end phase — calls encryption API
+  const forgePassword = (components) => {
     const { length = 16, uppercase = true, lowercase = true, numbers = true, symbols = true } = components;
     const charSets = [];
     if (uppercase) charSets.push('ABCDEFGHIJKLMNOPQRSTUVWXYZ');

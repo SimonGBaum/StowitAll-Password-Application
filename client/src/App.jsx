@@ -13,7 +13,8 @@ import { ContactUs } from './pages/ContactUs/ContactUs';
 import { ErrorPage } from './pages/ErrorPage/ErrorPage';
 
 function RootRedirect() {
-  const { user } = useContext(AuthContext);
+  const { user, loading } = useContext(AuthContext);
+  if (loading) return null;
   if (user) return <Navigate to="/home" replace />;
   return <LoginSignUp />;
 }

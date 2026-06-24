@@ -157,3 +157,79 @@
 .placeholder {
   color: #888888;
 }
+
+/* ── Strength / HIBP section ── */
+
+.strengthSection {
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid rgba(45, 106, 79, 0.3);
+}
+
+.checking,
+.unavailable {
+  font-family: var(--font-ui);
+  font-size: var(--text-meta);
+  color: #888888;
+}
+
+.barContainer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: 6px;
+}
+
+.segments {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+
+.segment {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  transition: background 0.3s ease;
+}
+
+.strengthLabel {
+  font-family: var(--font-ui);
+  font-size: var(--text-meta);
+  font-weight: 500;
+  min-width: 72px;
+  text-align: right;
+  transition: color 0.3s ease;
+}
+
+.breachWarn {
+  font-family: var(--font-ui);
+  font-size: var(--text-meta);
+  color: var(--color-accent-error);
+  margin: 4px 0 6px;
+  line-height: 1.4;
+}
+
+.clean {
+  font-family: var(--font-ui);
+  font-size: var(--text-meta);
+  color: var(--color-glow-safe);
+  margin: 4px 0 6px;
+}
+
+.attribution {
+  font-family: var(--font-ui);
+  font-size: 0.7rem;
+  color: #555555;
+  margin: 0;
+}
+
+.attribution a {
+  color: #555555;
+  text-decoration: underline;
+}
+
+.attribution a:hover {
+  color: #888888;
+}

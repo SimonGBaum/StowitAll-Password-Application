@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { usePasswords } from '../../context/PasswordContext';
 import { useToast } from '../../context/ToastContext';
 import { PageShell } from '../../components/PageShell/PageShell';
@@ -9,6 +9,8 @@ import { VaultDoorIcon } from '../../components/VaultDoorIcon/VaultDoorIcon';
 import { Button } from '../../components/Button/Button';
 import { Input } from '../../components/Input/Input';
 import { Modal } from '../../components/Modal/Modal';
+import { supabase } from '../../lib/supabaseClient';
+import { computeSHA1Prefix, computePasswordStrength } from '../../lib/hibp';
 import styles from './Vault.module.css';
 
 export function Vault() {
@@ -23,6 +25,40 @@ export function Vault() {
   const [editOpen, setEditOpen] = useState(false);
   const [editData, setEditData] = useState({ passwordName: '', siteName: '', password: '' });
   const [deleteModal, setDeleteModal] = useState(false);
+  const [strengthMap, setStrengthMap] = useState({});
+
+  const checkedRef = useRef(false);
+
+  // Run HIBP checks for all records once on mount (when records are first available)
+  useEffect(() => {
+    if (checkedRef.current || records.length === 0) return;
+    checkedRef.current = true;
+
+    const init = {};
+    records.forEach((r) => { init[r.id] = { status: 'loading' }; });
+    setStrengthMap(init);
+
+    records.forEach((r, i) => {
+      setTimeout(async () => {
+        try {
+          const { prefix, suffix } = await computeSHA1Prefix(r.password);
+          const { data, error } = await supabase.functions.invoke('hibp-password-check', {
+            body: { hashPrefix: prefix },
+          });
+          if (error) throw error;
+          const lines = (data?.suffixes ?? '').trim().split('\n');
+          const match = lines.find((l) => l.trim().split(':')[0].toUpperCase() === suffix);
+          const breachCount = match ? parseInt(match.split(':')[1], 10) : 0;
+          setStrengthMap((prev) => ({
+            ...prev,
+            [r.id]: { status: 'result', ...computePasswordStrength(r.password, breachCount) },
+          }));
+        } catch {
+          setStrengthMap((prev) => ({ ...prev, [r.id]: { status: 'error' } }));
+        }
+      }, i * 200);
+    });
+  }, [records]);
 
   const handleSearch = () => {
     setIsSearchOpen((p) => !p);
@@ -118,18 +154,37 @@ export function Vault() {
             <span>Password Name</span>
             <span>Site Name</span>
             <span>Date Created</span>
+            <span>Strength</span>
           </div>
-          {filtered.map((r) => (
-            <div
-              key={r.id}
-              className={`${styles.tableRow} ${selectedId === r.id ? styles.selected : ''}`}
-              onClick={() => setSelectedId(r.id === selectedId ? null : r.id)}
-            >
-              <span>{r.passwordName}</span>
-              <span>{r.siteName}</span>
-              <span>{r.dateCreated}</span>
-            </div>
-          ))}
+          {filtered.map((r) => {
+            const s = strengthMap[r.id];
+            return (
+              <div
+                key={r.id}
+                className={`${styles.tableRow} ${selectedId === r.id ? styles.selected : ''}`}
+                onClick={() => setSelectedId(r.id === selectedId ? null : r.id)}
+              >
+                <span>{r.passwordName}</span>
+                <span>{r.siteName}</span>
+                <span>{r.dateCreated}</span>
+                <span className={styles.strengthCell}>
+                  {!s || s.status === 'loading' ? (
+                    <span className={styles.loadingDot}>…</span>
+                  ) : s.status === 'error' ? (
+                    <span className={styles.strengthDash}>—</span>
+                  ) : (
+                    <span
+                      className={`${styles.strengthBadge} ${s.breached ? styles.breached : ''}`}
+                      style={{ background: s.color }}
+                    >
+                      {s.breached && '⚠ '}
+                      {s.label}
+                    </span>
+                  )}
+                </span>
+              </div>
+            );
+          })}
         </div>
       )}
 

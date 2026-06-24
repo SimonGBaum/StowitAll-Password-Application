@@ -6,6 +6,8 @@
   --color-glow-safe:    #52B788;
   --color-bg-error:     #221E1F;
   --color-accent-error: #E63946;
+  --color-strength-weak: #E07B39; /* orange — password strength indicator */
+  --color-strength-fair: #C9A84C; /* amber  — password strength indicator */
 
   /* Typography */
   --font-display: 'Cinzel', 'Cormorant Garamond', Georgia, serif;

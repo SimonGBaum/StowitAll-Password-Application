@@ -22,6 +22,7 @@ cd client
 npm install       # install dependencies
 npm run dev       # Vite dev server on http://localhost:5174
 npm run build     # production build → client/dist/
+npm run preview   # serve the production build locally
 npm run lint      # ESLint
 ```
 
@@ -65,6 +66,26 @@ client/
   vite.config.js
   index.html        # Google Fonts loaded here
 ```
+
+### PageShell (layout wrapper)
+
+Every authenticated page renders through `PageShell`, which composes the sticky NavBar + main content area + optional FooterNav:
+
+```jsx
+<PageShell
+  navLeft={<AnvilLogo />}
+  navCenter="Page Title"
+  navRight={<DateTimeGroup />}
+  footerLeft={<NavLink to="/contact">Contact</NavLink>}
+  footerCenter={<NavLink to="/home">Home</NavLink>}
+  footerRight={<button onClick={logout}>Logout</button>}
+  noFooter={false}   // pass noFooter to suppress the footer entirely (used by Vault)
+>
+  {/* page content */}
+</PageShell>
+```
+
+NavBar and FooterNav each accept `left`, `center`, and `right` slot props. Pass `noFooter` for pages that have no footer nav (The Vault).
 
 ### Context providers (state management)
 

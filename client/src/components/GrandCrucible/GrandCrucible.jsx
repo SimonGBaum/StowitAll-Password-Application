@@ -3,6 +3,8 @@ import { usePasswords } from '../../context/PasswordContext';
 import { useSmokyVeil } from '../../context/SmokyVeilContext';
 import { useToast } from '../../context/ToastContext';
 import { Button } from '../Button/Button';
+import { supabase } from '../../lib/supabaseClient';
+import { computeSHA1Prefix, computePasswordStrength } from '../../lib/hibp';
 import styles from './GrandCrucible.module.css';
 
 const SWIRL_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
@@ -22,6 +24,7 @@ export function GrandCrucible({ onPasswordForged }) {
   const [forgeState, setForgeState] = useState('idle'); // idle | forging | resolved
   const [output, setOutput] = useState('');
   const [swirlDisplay, setSwirlDisplay] = useState('');
+  const [hibpState, setHibpState] = useState({ status: 'idle' }); // idle | loading | result | error
 
   const { forgePassword } = usePasswords();
   const { triggerVeil } = useSmokyVeil();
@@ -72,7 +75,33 @@ export function GrandCrucible({ onPasswordForged }) {
     return () => document.removeEventListener('keydown', handleEscape);
   }, [forgeState, resolveForge]);
 
+  // HIBP breach check — fires whenever a new password resolves
+  useEffect(() => {
+    if (forgeState !== 'resolved' || !output) return;
+    let cancelled = false;
+    const runCheck = async () => {
+      setHibpState({ status: 'loading' });
+      try {
+        const { prefix, suffix } = await computeSHA1Prefix(output);
+        const { data, error } = await supabase.functions.invoke('hibp-password-check', {
+          body: { hashPrefix: prefix },
+        });
+        if (cancelled) return;
+        if (error) { setHibpState({ status: 'error' }); return; }
+        const lines = (data?.suffixes ?? '').trim().split('\n');
+        const match = lines.find((l) => l.trim().split(':')[0].toUpperCase() === suffix);
+        const breachCount = match ? parseInt(match.split(':')[1], 10) : 0;
+        setHibpState({ status: 'result', ...computePasswordStrength(output, breachCount) });
+      } catch {
+        if (!cancelled) setHibpState({ status: 'error' });
+      }
+    };
+    runCheck();
+    return () => { cancelled = true; };
+  }, [output, forgeState]);
+
   const handleForge = () => {
+    setHibpState({ status: 'idle' });
     const components = { length, uppercase, lowercase, numbers, symbols };
     const password = forgePassword(components);
     pendingPasswordRef.current = password;
@@ -158,6 +187,48 @@ export function GrandCrucible({ onPasswordForged }) {
           </button>
         )}
       </div>
+
+      {hibpState.status !== 'idle' && (
+        <div className={styles.strengthSection}>
+          {hibpState.status === 'loading' && (
+            <span className={styles.checking}>Checking for known breaches…</span>
+          )}
+          {hibpState.status === 'error' && (
+            <span className={styles.unavailable}>Breach check unavailable</span>
+          )}
+          {hibpState.status === 'result' && (
+            <>
+              <div className={styles.barContainer}>
+                <div className={styles.segments}>
+                  {[0, 1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className={styles.segment}
+                      style={i < hibpState.score ? { background: hibpState.color } : undefined}
+                    />
+                  ))}
+                </div>
+                <span className={styles.strengthLabel} style={{ color: hibpState.color }}>
+                  {hibpState.label}
+                </span>
+              </div>
+              {hibpState.breached ? (
+                <p className={styles.breachWarn}>
+                  ⚠ This password has appeared in {hibpState.breachCount.toLocaleString()} data breach{hibpState.breachCount !== 1 ? 'es' : ''} and should not be used.
+                </p>
+              ) : hibpState.score >= 3 ? (
+                <p className={styles.clean}>✓ Not found in known data breaches.</p>
+              ) : null}
+              <p className={styles.attribution}>
+                Breach data via{' '}
+                <a href="https://haveibeenpwned.com" target="_blank" rel="noopener noreferrer">
+                  Have I Been Pwned
+                </a>
+              </p>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

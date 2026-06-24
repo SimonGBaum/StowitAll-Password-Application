@@ -7,3 +7,4 @@ dist/
 
 # Windows SWL / Zone Identifier junk files
 *:Zone.Identifier
+*.Zone.Identifier

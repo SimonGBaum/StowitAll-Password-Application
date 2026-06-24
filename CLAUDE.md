@@ -4,118 +4,117 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project: StowitAll Password Application
 
-Full-stack password manager using Django + DRF (backend) and React + Vite (frontend), backed by PostgreSQL.
+Full-stack password manager. **There is no Django backend** — the project is a React + Vite SPA backed directly by Supabase (hosted PostgreSQL + auth).
 
 ## Stack
 
-- **Backend:** Django, Django REST Framework, PostgreSQL
-- **Frontend:** React, Vite
-- **Environments:** `.venv/` (Python virtualenv), `node_modules/` (Node)
+- **Frontend:** React 19, Vite, React Router v7, CSS Modules + CSS custom properties
+- **Backend-as-a-service:** Supabase (auth, PostgreSQL, Row Level Security)
+- **Encryption:** Web Crypto API (AES-GCM, PBKDF2 key derivation) — client-side, in `client/src/lib/crypto.js`
+- **HTTP client:** Axios (`client/src/services/api.js`) — currently a skeleton, not wired up; all data goes through the Supabase JS client
 
 ## Development Commands
 
-### Backend
+All frontend commands run from `client/`:
 
 ```bash
-source .venv/bin/activate
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py runserver
+cd client
+npm install       # install dependencies
+npm run dev       # Vite dev server on http://localhost:5174
+npm run build     # production build → client/dist/
+npm run lint      # ESLint
 ```
 
-### Frontend
+No test suite is configured — `npm test` will fail.
+
+### Supabase CLI (run from `supabase/`)
 
 ```bash
-cd frontend
-npm install
-npm run dev
+cd supabase
+npx supabase status
+npx supabase migration new <name>   # create a new migration
+npx supabase db push                # push migrations to hosted project
+npx supabase db pull                # pull remote schema changes
+npx supabase gen types typescript --linked   # regenerate TS types
 ```
 
 ### Environment
 
-Copy `.env.example` to `.env` and populate `DATABASE_URL`, `SECRET_KEY`, and any other required variables before starting.
+`client/.env` must contain:
 
-## Testing
-
-```bash
-# Backend — all tests
-python manage.py test
-
-# Backend — single app or single test
-python manage.py test <app>
-python manage.py test <app>.<TestClass>.<test_method>
-
-# Frontend
-cd frontend && npm test
 ```
+VITE_SUPABASE_URL=<project url>
+VITE_SUPABASE_ANON_KEY=<anon key>
+```
+
+Vite only exposes `VITE_`-prefixed vars to the browser.
 
 ## Architecture
 
-- DRF API is consumed by the React SPA; no server-side HTML rendering.
-- PostgreSQL is the only supported database — no SQLite fallback.
-- `manage.py` lives at the Django project root alongside the settings module.
-- Frontend is a separate Vite SPA under `frontend/`, built to `frontend/dist/`.
-
-### Backend layout (intended)
+### Frontend layout
 
 ```
-stowitall/          # Django project settings package
-  settings.py
-  urls.py
-<app>/              # One Django app per domain (e.g. passwords/, users/)
-  models.py
-  serializers.py
-  views.py
-  urls.py
-  tests.py
-manage.py
-requirements.txt
-```
-
-### Frontend layout (intended)
-
-```
-frontend/
+client/
   src/
-    api/            # Axios/fetch wrappers for each DRF endpoint
-    components/     # Reusable UI components
+    context/        # React Context providers (auth, passwords, toasts, animation)
+    lib/            # supabaseClient.js, crypto.js
+    components/     # Reusable UI (NavBar, FooterNav, GrandCrucible, SmokyVeil, …)
     pages/          # Route-level views
-    App.jsx
-    main.jsx
+    services/       # api.js skeleton (unused — see note above)
+    styles/         # tokens.css (design tokens), global.css
   vite.config.js
-  package.json
+  index.html        # Google Fonts loaded here
 ```
 
-### Key conventions
+### Context providers (state management)
 
-- DRF views should use class-based `APIView` or `ModelViewSet`; keep business logic out of views and serializers.
-- All API routes are prefixed `/api/`; the frontend proxies to the Django dev server via Vite's `server.proxy`.
-- **Authentication:** JWT via `djangorestframework-simplejwt` — record the decision here once implemented.
-- Passwords stored in the database must be encrypted at the application layer (not just hashed) — this is a password *manager*, not an auth system.
-- Environment variables are loaded via `django-environ` or `python-decouple`; never hardcode secrets.
+Providers wrap the app in this order in `main.jsx`:
+
+```
+AuthProvider → PasswordProvider → ToastProvider → SmokyVeilProvider → App
+```
+
+| Context | Key state / methods |
+|---|---|
+| `AuthContext` | `user` (undefined/null/object), `loading`; `login`, `logout`, `signup`, `updateProfile` |
+| `PasswordContext` | `records[]` (decrypted); `addRecord`, `updateRecord`, `deleteRecord`, `forgePassword` |
+| `ToastContext` | `toasts[]`; `addToast(message, type)`, `removeToast(id)` — auto-dismiss 3500ms |
+| `SmokyVeilContext` | `phase`; `triggerVeil(callback)` — fade-in 150ms → hold → fade-out 150ms |
+
+### Encryption
+
+`client/src/lib/crypto.js` — AES-GCM 256-bit, key derived via PBKDF2 (100k iterations, SHA-256). Key material is the user's Supabase UUID; salt is the fixed string `"stowitall-v1-salt"`. Key is re-derived on every call and never stored. Ciphertext stored as base64 (`iv[12 bytes] || ciphertext`) in `password_entries.encrypted_password`.
+
+### Database schema (Supabase, all migrations live)
+
+| Table | Purpose | RLS |
+|---|---|---|
+| `public.profiles` | name + username, 1:1 with `auth.users` | own row only |
+| `public.password_entries` | encrypted credentials | own rows only |
+| `public.audit_log` | INSERT/UPDATE/DELETE log (written by SECURITY DEFINER trigger) | SELECT own rows only; clients cannot write |
+
+`profiles` rows are auto-created by the `handle_new_user` trigger — no frontend INSERT needed on signup.
 
 ## Pages & Navigation
 
-Seven page states (all in one SPA). See `app_outline/user_journey.md` for full interaction specs.
+| Route | Page | Auth required | Footer nav |
+|---|---|---|---|
+| `/` | Login / Sign-Up | No | — |
+| `/home` | Home | Yes | Contact, Vault, Logout |
+| `/create` | The Password Creation Room | Yes | Contact, Home, Logout |
+| `/vault` | The Vault | Yes | **None** — Home header link only |
+| `/profile` | Profile | Yes | Contact, Home, Logout |
+| `/contact` | Contact Us | Yes | Home button only |
+| `*` | Error | No | Single "Home" button; no Logout |
 
-| Page | Route to it from |
-|---|---|
-| Login / Sign-Up | App entry; post-logout |
-| Home | Post-login; "Home" links everywhere |
-| Password Creation Room | Home CTA |
-| The Vault | Home secondary nav |
-| Profile | Home header "User Profile" link |
-| Contact Us | Home, Password Creation Room, Profile |
-| Error | Any unhandled exception / broken route |
-
-Navigation constraints to enforce:
-- The Vault has **no footer nav** — only a "Home" header link. No direct path to Create, Profile, or Contact Us.
-- Profile and Contact Us have no direct path to The Vault or Password Creation Room — must go via Home.
-- The Error Page has a single "Home" button and no Log Out. Clear the session before rendering so "Home" routes to Login if the session was the cause.
+Navigation constraints:
+- The Vault has **no footer nav** — no direct path to Create, Profile, or Contact Us.
+- Profile and Contact Us have no direct path to The Vault or The Password Creation Room — must go via Home.
+- Error page logs out the user before rendering so "Home" routes to Login if the session was the cause.
 
 ## Design System
 
-Full spec in `app_outline/style_guide.md`. Critical rules summarized here.
+Full spec in `app_outline/style_guide.md`. Tokens live in `client/src/styles/tokens.css`.
 
 ### Color tokens (always use CSS custom properties — never hardcode hex)
 
@@ -136,7 +135,7 @@ Full spec in `app_outline/style_guide.md`. Critical rules summarized here.
 
 - **Headers / structural titles:** `Cinzel` (700 weight), `color: var(--color-secondary)`. Never below 0.85rem.
 - **Everything else (buttons, forms, body, nav):** `Inter`, `color: #FFFFFF`.
-- Load both from Google Fonts.
+- Both loaded from Google Fonts in `index.html`.
 
 ### Buttons
 
@@ -146,9 +145,9 @@ All action buttons use the `.forge-btn` brushed-metal treatment (dark gradient b
 
 1. Successful login
 2. Logout
-3. Successful password generation (post-Forge)
+3. Successful password Forge
 
-Always respect `prefers-reduced-motion` — skip all animations and transition instantly.
+Always respect `prefers-reduced-motion` — `SmokyVeilContext.triggerVeil()` already handles this by skipping animation and running the callback immediately.
 
 The Grand Crucible forge sequence: character-swirl SVG animation (~400ms) → credential resolves → Smoky Veil fires. Must be cancellable via Escape or click-outside.
 

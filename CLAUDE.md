@@ -11,6 +11,7 @@ Full-stack password manager. **There is no Django backend** — the project is a
 - **Frontend:** React 19, Vite, React Router v7, CSS Modules + CSS custom properties
 - **Backend-as-a-service:** Supabase (auth, PostgreSQL, Row Level Security)
 - **Encryption:** Web Crypto API (AES-GCM, PBKDF2 key derivation) — client-side, in `client/src/lib/crypto.js`
+- **Password strength / breach checking:** `client/src/lib/hibp.js` — entropy scoring + SHA-1 k-anonymity check via a Supabase Edge Function (`supabase/supabase/functions/hibp-password-check/`)
 - **HTTP client:** Axios (`client/src/services/api.js`) — currently a skeleton, not wired up; all data goes through the Supabase JS client
 
 ## Development Commands
@@ -30,14 +31,19 @@ No test suite is configured — `npm test` will fail.
 
 ### Supabase CLI (run from `supabase/`)
 
+Note: the Supabase workspace uses a nested layout — config lives in `supabase/supabase/` (migrations, functions, config.toml).
+
 ```bash
 cd supabase
 npx supabase status
+npx supabase db diff                # diff local schema vs remote
 npx supabase migration new <name>   # create a new migration
 npx supabase db push                # push migrations to hosted project
 npx supabase db pull                # pull remote schema changes
 npx supabase gen types typescript --linked   # regenerate TS types
 ```
+
+Edge Functions live in `supabase/supabase/functions/hibp-password-check/`. Deploy with `npx supabase functions deploy hibp-password-check`.
 
 ### Environment
 
@@ -58,7 +64,8 @@ Vite only exposes `VITE_`-prefixed vars to the browser.
 client/
   src/
     context/        # React Context providers (auth, passwords, toasts, animation)
-    lib/            # supabaseClient.js, crypto.js
+    hooks/          # useDateTime.js (live timestamp, 1s interval), useSmokyVeil.js (veil wrapper)
+    lib/            # supabaseClient.js, crypto.js, hibp.js
     components/     # Reusable UI (NavBar, FooterNav, GrandCrucible, SmokyVeil, …)
     pages/          # Route-level views
     services/       # api.js skeleton (unused — see note above)
@@ -106,6 +113,24 @@ AuthProvider → PasswordProvider → ToastProvider → SmokyVeilProvider → Ap
 
 `client/src/lib/crypto.js` — AES-GCM 256-bit, key derived via PBKDF2 (100k iterations, SHA-256). Key material is the user's Supabase UUID; salt is the fixed string `"stowitall-v1-salt"`. Key is re-derived on every call and never stored. Ciphertext stored as base64 (`iv[12 bytes] || ciphertext`) in `password_entries.encrypted_password`.
 
+### Breach Detection & Password Strength (HIBP)
+
+The HIBP integration uses a **k-anonymity proxy pattern** — the plaintext password never leaves the browser, and the full SHA-1 hash never reaches HIBP.
+
+**Flow:**
+1. `client/src/lib/hibp.js` → `computeSHA1Prefix(password)` hashes the password with `crypto.subtle.digest('SHA-1')` and splits the result into a 5-char `prefix` and the remaining `suffix`
+2. Client calls `supabase.functions.invoke('hibp-password-check', { body: { hashPrefix: prefix } })` — the Supabase JS client automatically attaches the user's JWT
+3. Edge Function (`supabase/supabase/functions/hibp-password-check/index.ts`) validates the JWT, then proxies the prefix to `api.pwnedpasswords.com/range/{prefix}` with `Add-Padding: true`
+4. HIBP returns ~500–1000 `SUFFIX:COUNT` lines; the Edge Function forwards them to the client
+5. Client checks whether its own `suffix` appears in the list to get the breach count
+6. `computePasswordStrength(password, breachCount)` scores by entropy (charset size × log₂ × length); a non-zero `breachCount` overrides to "Compromised" regardless of entropy
+
+**Where it runs:**
+- `GrandCrucible` — fires automatically after every Forge; shows a 4-segment strength bar + breach warning
+- `Vault` — runs on mount for every record (staggered 200ms per record to avoid rate limiting); shows a colored badge in the "Strength" column
+
+**Never call `api.pwnedpasswords.com` directly from the browser** — always go through the Edge Function so the user's JWT is required and the proxy headers are set correctly.
+
 ### Database schema (Supabase, all migrations live)
 
 | Table | Purpose | RLS |
@@ -132,6 +157,7 @@ Navigation constraints:
 - The Vault has **no footer nav** — no direct path to Create, Profile, or Contact Us.
 - Profile and Contact Us have no direct path to The Vault or The Password Creation Room — must go via Home.
 - Error page logs out the user before rendering so "Home" routes to Login if the session was the cause.
+- `/` renders `RootRedirect`: authenticated users go to `/home`, unauthenticated users see the LoginSignUp page.
 
 ## Design System
 
@@ -145,8 +171,10 @@ Full spec in `app_outline/style_guide.md`. Tokens live in `client/src/styles/tok
   --color-primary:      #2D6A4F;  /* Imperial Forest Green — borders, accents, nav */
   --color-secondary:    #E0A96D;  /* Burnished Brass/Gold — headers, active states */
   --color-glow-safe:    #52B788;  /* Magical Aura Green — glows, hover, active */
-  --color-bg-error:     #221E1F;  /* Error page canvas ONLY */
-  --color-accent-error: #E63946;  /* Error alerts, error page glow ONLY */
+  --color-bg-error:        #221E1F;  /* Error page canvas ONLY */
+  --color-accent-error:    #E63946;  /* Error alerts, error page glow ONLY */
+  --color-strength-weak:   #E07B39;  /* Password strength — Weak */
+  --color-strength-fair:   #C9A84C;  /* Password strength — Fair */
 }
 ```
 

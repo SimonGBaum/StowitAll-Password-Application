@@ -1,8 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { usePasswords } from '../../context/PasswordContext';
 import { useToast } from '../../context/ToastContext';
+<<<<<<< HEAD
 import { ForgeAnvil } from '../ForgeAnvil/ForgeAnvil';
 import { ForgeSmoke } from '../ForgeSmoke/ForgeSmoke';
+=======
+import { Button } from '../Button/Button';
+>>>>>>> 5ee6f70 (save everything)
 import { supabase } from '../../lib/supabaseClient';
 import { computeSHA1Prefix, computePasswordStrength } from '../../lib/hibp';
 import {
@@ -16,6 +20,10 @@ import styles from './GrandCrucible.module.css';
 
 // Characters used for the scramble animation in the output field
 const SWIRL_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+<<<<<<< HEAD
+=======
+const SWIRL_DURATION = 400;
+>>>>>>> 5ee6f70 (save everything)
 
 function randomChar() {
   return SWIRL_CHARS[Math.floor(Math.random() * SWIRL_CHARS.length)];
@@ -43,8 +51,12 @@ export function GrandCrucible({ onPasswordForged }) {
   const [numbers, setNumbers] = useState(true);
   const [symbols, setSymbols] = useState(true);
   const [constraintMsg, setConstraintMsg] = useState('');
+<<<<<<< HEAD
 
   const [forgePhase, setForgePhase] = useState('idle');
+=======
+  const [forgeState, setForgeState] = useState('idle'); // idle | forging | resolved
+>>>>>>> 5ee6f70 (save everything)
   const [output, setOutput] = useState('');
   const [swirlDisplay, setSwirlDisplay] = useState('');
   const [hibpState, setHibpState] = useState({ status: 'idle' });
@@ -52,8 +64,13 @@ export function GrandCrucible({ onPasswordForged }) {
   const { forgePassword } = usePasswords();
   const { addToast } = useToast();
 
+<<<<<<< HEAD
   const swirlIntervalRef  = useRef(null);
   const timersRef         = useRef([]);
+=======
+  const swirlIntervalRef = useRef(null);
+  const forgeTimeoutRef = useRef(null);
+>>>>>>> 5ee6f70 (save everything)
   const pendingPasswordRef = useRef('');
 
   const prefersReduced = typeof window !== 'undefined'
@@ -89,11 +106,19 @@ export function GrandCrucible({ onPasswordForged }) {
     setter(next);
   };
 
+<<<<<<< HEAD
   // Jump straight to covered state (Escape pressed during expansion)
   const skipToResolved = useCallback(() => {
     clearTimers();
     setForgePhase('smoke-covered');
     setOutput(pendingPasswordRef.current);
+=======
+  const resolveForge = useCallback((password) => {
+    clearInterval(swirlIntervalRef.current);
+    clearTimeout(forgeTimeoutRef.current);
+    setForgeState('resolved');
+    setOutput(password);
+>>>>>>> 5ee6f70 (save everything)
     setSwirlDisplay('');
     if (onPasswordForged) onPasswordForged(pendingPasswordRef.current);
 
@@ -145,6 +170,10 @@ export function GrandCrucible({ onPasswordForged }) {
     // Prevent re-triggering while any animation is in progress
     if (forgePhase !== 'idle' && forgePhase !== 'resolved') return;
 
+<<<<<<< HEAD
+=======
+  const handleForge = () => {
+>>>>>>> 5ee6f70 (save everything)
     setHibpState({ status: 'idle' });
     const password = forgePassword({ length, uppercase, lowercase, numbers, symbols });
     pendingPasswordRef.current = password;
@@ -157,6 +186,7 @@ export function GrandCrucible({ onPasswordForged }) {
       return;
     }
 
+<<<<<<< HEAD
     // ── Phase 1: Hammer swings ──────────────────────────────────────────
     setForgePhase('hammer-swinging');
 
@@ -190,6 +220,18 @@ export function GrandCrucible({ onPasswordForged }) {
         }, VEIL_HOLD_DURATION);
       }, VEIL_EXPAND_DURATION);
     }, HAMMER_DURATION);
+=======
+    setForgeState('forging');
+    setSwirlDisplay(Array.from({ length }, randomChar).join(''));
+
+    swirlIntervalRef.current = setInterval(() => {
+      setSwirlDisplay(Array.from({ length }, randomChar).join(''));
+    }, 60);
+
+    forgeTimeoutRef.current = setTimeout(() => {
+      resolveForge(password);
+    }, SWIRL_DURATION);
+>>>>>>> 5ee6f70 (save everything)
   };
 
   const handleCopy = () => {
@@ -257,6 +299,13 @@ export function GrandCrucible({ onPasswordForged }) {
         <p className={styles.constraintMsg}>{constraintMsg}</p>
       </div>
 
+<<<<<<< HEAD
+=======
+      <Button variant="full-width" onClick={handleForge} disabled={forgeState === 'forging'}>
+        Forge
+      </Button>
+
+>>>>>>> 5ee6f70 (save everything)
       <div className={styles.outputRow}>
         <div className={`${styles.outputField} ${showScramble ? styles.forging : ''}`}>
           {showScramble ? (

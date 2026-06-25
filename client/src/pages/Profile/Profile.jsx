@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { useNavigate, useBlocker } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+<<<<<<< HEAD
 import { useWalkingTransition } from '../../context/WalkingTransitionContext';
+=======
+import { useSmokyVeil } from '../../context/SmokyVeilContext';
+>>>>>>> 5ee6f70 (save everything)
 import { useToast } from '../../context/ToastContext';
 import { WALK_DURATION_LOGOUT } from '../../lib/animationConstants';
 import { PageShell } from '../../components/PageShell/PageShell';
@@ -15,7 +19,11 @@ import styles from './Profile.module.css';
 
 export function Profile() {
   const { user, logout, updateProfile } = useAuth();
+<<<<<<< HEAD
   const { triggerWalk } = useWalkingTransition();
+=======
+  const { triggerVeil } = useSmokyVeil();
+>>>>>>> 5ee6f70 (save everything)
   const { addToast } = useToast();
   const navigate = useNavigate();
 
@@ -69,7 +77,11 @@ export function Profile() {
   const handleLogout = () => {
     if (isEditing) return; // blocker handles it
     logout();
+<<<<<<< HEAD
     triggerWalk(() => navigate('/'), WALK_DURATION_LOGOUT);
+=======
+    triggerVeil(() => navigate('/'));
+>>>>>>> 5ee6f70 (save everything)
   };
 
   const handleBlockerConfirm = () => {

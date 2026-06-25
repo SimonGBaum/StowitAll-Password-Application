@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+<<<<<<< HEAD
 import { useWalkingTransition } from '../../context/WalkingTransitionContext';
+=======
+import { useSmokyVeil } from '../../context/SmokyVeilContext';
+>>>>>>> 5ee6f70 (save everything)
 import { useToast } from '../../context/ToastContext';
 import { WALK_DURATION_LOGIN } from '../../lib/animationConstants';
 import { Input } from '../Input/Input';
@@ -17,7 +21,11 @@ export function AuthCard() {
   const [errors, setErrors] = useState(EMPTY_ERRORS);
 
   const { login, signup } = useAuth();
+<<<<<<< HEAD
   const { triggerWalk } = useWalkingTransition();
+=======
+  const { triggerVeil } = useSmokyVeil();
+>>>>>>> 5ee6f70 (save everything)
   const { addToast } = useToast();
   const navigate = useNavigate();
 
@@ -40,7 +48,11 @@ export function AuthCard() {
 
     try {
       await login(fields.email, fields.password);
+<<<<<<< HEAD
       triggerWalk(() => navigate('/home'), WALK_DURATION_LOGIN);
+=======
+      triggerVeil(() => navigate('/home'));
+>>>>>>> 5ee6f70 (save everything)
     } catch {
       setErrors((prev) => ({ ...prev, form: 'Incorrect email or password.' }));
     }

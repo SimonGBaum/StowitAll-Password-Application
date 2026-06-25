@@ -44,7 +44,14 @@ This is a fully-built React 19 + Vite SPA. **There is no Django backend** — al
 
 ### Reference docs
 
+<<<<<<< HEAD
 Detailed interaction specs and wireframes live in `../app_outline/`:
 - `app_outline/user_journey.md` — happy paths, error branches, nav map
 - `app_outline/style_guide.md` — full component specs, animation timings
 - `app_outline/pages/` — wireframe PNGs for each page state
+=======
+Detailed interaction specs and wireframes:
+- `skeleton/user_journey.md` — happy paths, error branches, nav map
+- `skeleton/style_guide.md` — full component specs, animation timings
+- `skeleton/pages/` — wireframe PNGs for each page state
+>>>>>>> 5ee6f70 (save everything)

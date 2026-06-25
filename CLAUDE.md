@@ -109,9 +109,23 @@ AuthProvider → PasswordProvider → ToastProvider → SmokyVeilProvider → Ap
 | `ToastContext` | `toasts[]`; `addToast(message, type)`, `removeToast(id)` — auto-dismiss 3500ms |
 | `SmokyVeilContext` | `phase`; `triggerVeil(callback)` — fade-in 150ms → hold → fade-out 150ms |
 
+Each context file exports a named hook — always use these instead of `useContext` directly:
+
+```js
+import { useAuth }       from '../context/AuthContext';
+import { usePasswords }  from '../context/PasswordContext';
+import { useSmokyVeil }  from '../context/SmokyVeilContext';  // also re-exported from hooks/useSmokyVeil.js
+```
+
+**`AuthContext.user` has three distinct states:** `undefined` = session not yet resolved (show nothing / spinner), `null` = unauthenticated, object = authenticated. `ProtectedRoute` and `RootRedirect` both depend on this distinction — treat `undefined` as "still loading", not as "logged out".
+
 ### Encryption
 
 `client/src/lib/crypto.js` — AES-GCM 256-bit, key derived via PBKDF2 (100k iterations, SHA-256). Key material is the user's Supabase UUID; salt is the fixed string `"stowitall-v1-salt"`. Key is re-derived on every call and never stored. Ciphertext stored as base64 (`iv[12 bytes] || ciphertext`) in `password_entries.encrypted_password`.
+
+`PasswordContext.forgePassword()` uses `Math.random()`, not the Web Crypto API — intentional for speed, but passwords are not cryptographically random. Do not change this to `crypto.getRandomValues` without updating the strength-scoring logic.
+
+`rowToRecord()` in `PasswordContext` is the only place that maps DB snake_case column names to the camelCase shape the UI uses (`password_name` → `passwordName`, etc.). When adding a new DB column, update this function and the insert/update calls alongside it.
 
 ### Breach Detection & Password Strength (HIBP)
 

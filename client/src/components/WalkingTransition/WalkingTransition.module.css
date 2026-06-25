@@ -1,0 +1,149 @@
+/* ── Walking Transition Overlay ─────────────────────────────────────────────
+   Full-screen corridor-with-torch effect that plays on every page navigation.
+   Phase attribute drives opacity and the walking jog:
+     entering  → fade in
+     active    → fully visible, jog + torch flicker running
+     exiting   → fade out
+─────────────────────────────────────────────────────────────────────────── */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 200ms ease;
+  overflow: hidden;
+  /* Dark stone-wall base */
+  background-color: #0a0c0b;
+}
+
+.overlay[data-phase='entering'],
+.overlay[data-phase='active'] {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.overlay[data-phase='exiting'] {
+  opacity: 0;
+}
+
+/* ── Walking jog — applied only while active ── */
+@keyframes walkJog {
+  0%   { transform: translateY(0px); }
+  18%  { transform: translateY(-6px); }
+  40%  { transform: translateY(3px); }
+  60%  { transform: translateY(-4px); }
+  80%  { transform: translateY(2px); }
+  100% { transform: translateY(0px); }
+}
+
+.overlay[data-phase='active'] {
+  animation: walkJog 800ms ease-in-out infinite;
+}
+
+/* ── Stone corridor: dark radial vignette with subtle texture ── */
+.corridor {
+  position: absolute;
+  inset: 0;
+  /* Strong dark vignette on all four edges — simulates narrow stone passage */
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 50%, transparent 40%, rgba(0, 0, 0, 0.75) 100%);
+}
+
+/* Faint stone-block pattern via repeating gradient */
+.corridor::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 59px,
+      rgba(255, 255, 255, 0.025) 59px,
+      rgba(255, 255, 255, 0.025) 60px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 89px,
+      rgba(255, 255, 255, 0.015) 89px,
+      rgba(255, 255, 255, 0.015) 90px
+    );
+}
+
+/* ── Torch flicker keyframes — two variants with different rhythms ── */
+@keyframes torchFlicker1 {
+  0%   { opacity: 0.70; transform: scale(1.00); }
+  15%  { opacity: 0.85; transform: scale(1.05); }
+  35%  { opacity: 0.60; transform: scale(0.97); }
+  55%  { opacity: 0.80; transform: scale(1.03); }
+  75%  { opacity: 0.55; transform: scale(0.98); }
+  100% { opacity: 0.70; transform: scale(1.00); }
+}
+
+@keyframes torchFlicker2 {
+  0%   { opacity: 0.65; transform: scale(0.98); }
+  20%  { opacity: 0.80; transform: scale(1.04); }
+  45%  { opacity: 0.55; transform: scale(1.00); }
+  65%  { opacity: 0.75; transform: scale(1.02); }
+  85%  { opacity: 0.50; transform: scale(0.96); }
+  100% { opacity: 0.65; transform: scale(0.98); }
+}
+
+/* ── Left torch: upper-left wall source ── */
+.torchLeft {
+  position: absolute;
+  top: -10%;
+  left: -5%;
+  width: 55%;
+  height: 80%;
+  background: radial-gradient(
+    ellipse at 20% 30%,
+    rgba(220, 145, 35, 0.22) 0%,
+    rgba(180, 90, 20, 0.12) 35%,
+    transparent 70%
+  );
+  animation: torchFlicker1 320ms ease-in-out infinite;
+}
+
+/* ── Right torch: upper-right wall source, slightly different rhythm ── */
+.torchRight {
+  position: absolute;
+  top: -10%;
+  right: -5%;
+  width: 55%;
+  height: 80%;
+  background: radial-gradient(
+    ellipse at 80% 30%,
+    rgba(210, 130, 25, 0.20) 0%,
+    rgba(170, 80, 15, 0.10) 35%,
+    transparent 70%
+  );
+  animation: torchFlicker2 320ms ease-in-out infinite;
+  animation-delay: 137ms; /* offset so the two sources don't pulse in sync */
+}
+
+/* ── Carried light: faint sphere at viewport centre ── */
+@keyframes carriedPulse {
+  0%   { opacity: 0.18; }
+  50%  { opacity: 0.28; }
+  100% { opacity: 0.18; }
+}
+
+.carriedLight {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40vw;
+  height: 40vw;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(200, 130, 40, 0.25) 0%,
+    transparent 70%
+  );
+  animation: carriedPulse 600ms ease-in-out infinite;
+}

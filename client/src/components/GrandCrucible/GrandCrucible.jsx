@@ -1,19 +1,41 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { usePasswords } from '../../context/PasswordContext';
-import { useSmokyVeil } from '../../context/SmokyVeilContext';
 import { useToast } from '../../context/ToastContext';
-import { Button } from '../Button/Button';
+import { ForgeAnvil } from '../ForgeAnvil/ForgeAnvil';
+import { ForgeSmoke } from '../ForgeSmoke/ForgeSmoke';
 import { supabase } from '../../lib/supabaseClient';
 import { computeSHA1Prefix, computePasswordStrength } from '../../lib/hibp';
+import {
+  HAMMER_DURATION,
+  VEIL_EXPAND_DURATION,
+  VEIL_HOLD_DURATION,
+  VEIL_DISSIPATE_DURATION,
+  SCRAMBLE_INTERVAL,
+} from '../../lib/animationConstants';
 import styles from './GrandCrucible.module.css';
 
+// Characters used for the scramble animation in the output field
 const SWIRL_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
-const SWIRL_DURATION = 400;
 
 function randomChar() {
   return SWIRL_CHARS[Math.floor(Math.random() * SWIRL_CHARS.length)];
 }
 
+/**
+ * forgePhase state machine:
+ *
+ *   idle
+ *     ↓  (anvil click)
+ *   hammer-swinging   — HAMMER_DURATION ms
+ *     ↓  (hammer contacts anvil)
+ *   smoke-expanding   — VEIL_EXPAND_DURATION ms (scramble + smoke expand simultaneously)
+ *     ↓  (smoke fully covers screen)
+ *   smoke-covered     — VEIL_HOLD_DURATION ms (scramble stops, real password placed)
+ *     ↓
+ *   smoke-dissipating — VEIL_DISSIPATE_DURATION ms
+ *     ↓
+ *   resolved          — password visible, HIBP check fires
+ */
 export function GrandCrucible({ onPasswordForged }) {
   const [length, setLength] = useState(16);
   const [uppercase, setUppercase] = useState(true);
@@ -21,27 +43,39 @@ export function GrandCrucible({ onPasswordForged }) {
   const [numbers, setNumbers] = useState(true);
   const [symbols, setSymbols] = useState(true);
   const [constraintMsg, setConstraintMsg] = useState('');
-  const [forgeState, setForgeState] = useState('idle'); // idle | forging | resolved
+
+  const [forgePhase, setForgePhase] = useState('idle');
   const [output, setOutput] = useState('');
   const [swirlDisplay, setSwirlDisplay] = useState('');
-  const [hibpState, setHibpState] = useState({ status: 'idle' }); // idle | loading | result | error
+  const [hibpState, setHibpState] = useState({ status: 'idle' });
 
   const { forgePassword } = usePasswords();
-  const { triggerVeil } = useSmokyVeil();
   const { addToast } = useToast();
 
-  const swirlIntervalRef = useRef(null);
-  const forgeTimeoutRef = useRef(null);
+  const swirlIntervalRef  = useRef(null);
+  const timersRef         = useRef([]);
   const pendingPasswordRef = useRef('');
+
   const prefersReduced = typeof window !== 'undefined'
     ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
     : false;
 
+  // Clear all pending timeouts (used on Escape / cancel)
+  const clearTimers = useCallback(() => {
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+    clearInterval(swirlIntervalRef.current);
+    swirlIntervalRef.current = null;
+  }, []);
+
+  const schedule = (fn, delay) => {
+    const id = setTimeout(fn, delay);
+    timersRef.current.push(id);
+  };
+
   const handleToggle = (setter, current) => {
     const next = !current;
-    const counts = {
-      uppercase: uppercase, lowercase: lowercase, numbers: numbers, symbols: symbols
-    };
+    const counts = { uppercase, lowercase, numbers, symbols };
     const key = setter === setUppercase ? 'uppercase'
                : setter === setLowercase ? 'lowercase'
                : setter === setNumbers   ? 'numbers' : 'symbols';
@@ -55,29 +89,36 @@ export function GrandCrucible({ onPasswordForged }) {
     setter(next);
   };
 
-  const resolveForge = useCallback((password) => {
-    clearInterval(swirlIntervalRef.current);
-    clearTimeout(forgeTimeoutRef.current);
-    setForgeState('resolved');
-    setOutput(password);
+  // Jump straight to covered state (Escape pressed during expansion)
+  const skipToResolved = useCallback(() => {
+    clearTimers();
+    setForgePhase('smoke-covered');
+    setOutput(pendingPasswordRef.current);
     setSwirlDisplay('');
-    if (onPasswordForged) onPasswordForged(password);
-    triggerVeil(() => {});
-  }, [triggerVeil, onPasswordForged]);
+    if (onPasswordForged) onPasswordForged(pendingPasswordRef.current);
 
+    schedule(() => {
+      setForgePhase('smoke-dissipating');
+      schedule(() => {
+        setForgePhase('resolved');
+      }, VEIL_DISSIPATE_DURATION);
+    }, VEIL_HOLD_DURATION);
+  }, [clearTimers, onPasswordForged]);
+
+  // Escape cancels the forge mid-expansion
   useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === 'Escape' && forgeState === 'forging') {
-        resolveForge(pendingPasswordRef.current);
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && forgePhase === 'smoke-expanding') {
+        skipToResolved();
       }
     };
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [forgeState, resolveForge]);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [forgePhase, skipToResolved]);
 
-  // HIBP breach check — fires whenever a new password resolves
+  // HIBP breach check — fires once a password is in the resolved state
   useEffect(() => {
-    if (forgeState !== 'resolved' || !output) return;
+    if (forgePhase !== 'resolved' || !output) return;
     let cancelled = false;
     const runCheck = async () => {
       setHibpState({ status: 'loading' });
@@ -98,32 +139,57 @@ export function GrandCrucible({ onPasswordForged }) {
     };
     runCheck();
     return () => { cancelled = true; };
-  }, [output, forgeState]);
+  }, [output, forgePhase]);
 
-  const handleForge = () => {
+  const handleAnvilClick = () => {
+    // Prevent re-triggering while any animation is in progress
+    if (forgePhase !== 'idle' && forgePhase !== 'resolved') return;
+
     setHibpState({ status: 'idle' });
-    const components = { length, uppercase, lowercase, numbers, symbols };
-    const password = forgePassword(components);
+    const password = forgePassword({ length, uppercase, lowercase, numbers, symbols });
     pendingPasswordRef.current = password;
 
+    // Reduced-motion: skip all animation, show password immediately
     if (prefersReduced) {
       setOutput(password);
-      setForgeState('resolved');
+      setForgePhase('resolved');
       if (onPasswordForged) onPasswordForged(password);
-      triggerVeil(() => {});
       return;
     }
 
-    setForgeState('forging');
-    setSwirlDisplay(Array.from({ length }, randomChar).join(''));
+    // ── Phase 1: Hammer swings ──────────────────────────────────────────
+    setForgePhase('hammer-swinging');
 
-    swirlIntervalRef.current = setInterval(() => {
+    schedule(() => {
+      // ── Phase 2: Hammer contacts — smoke, sparks, scramble all start ──
+      setForgePhase('smoke-expanding');
+
+      // Scramble characters in the output field while smoke expands
       setSwirlDisplay(Array.from({ length }, randomChar).join(''));
-    }, 60);
+      swirlIntervalRef.current = setInterval(() => {
+        setSwirlDisplay(Array.from({ length }, randomChar).join(''));
+      }, SCRAMBLE_INTERVAL);
 
-    forgeTimeoutRef.current = setTimeout(() => {
-      resolveForge(password);
-    }, SWIRL_DURATION);
+      schedule(() => {
+        // ── Phase 3: Smoke fully covers screen ─────────────────────────
+        clearInterval(swirlIntervalRef.current);
+        swirlIntervalRef.current = null;
+        setSwirlDisplay('');
+        setOutput(password);
+        setForgePhase('smoke-covered');
+        if (onPasswordForged) onPasswordForged(password);
+
+        schedule(() => {
+          // ── Phase 4: Smoke dissipates ───────────────────────────────
+          setForgePhase('smoke-dissipating');
+
+          schedule(() => {
+            // ── Phase 5: Resolved — password is now visible ────────────
+            setForgePhase('resolved');
+          }, VEIL_DISSIPATE_DURATION);
+        }, VEIL_HOLD_DURATION);
+      }, VEIL_EXPAND_DURATION);
+    }, HAMMER_DURATION);
   };
 
   const handleCopy = () => {
@@ -132,11 +198,35 @@ export function GrandCrucible({ onPasswordForged }) {
     });
   };
 
+  // Which output content to show based on phase
+  const smokePhasesActive = ['smoke-expanding', 'smoke-covered', 'smoke-dissipating'];
+  const showScramble = forgePhase === 'smoke-expanding';
+  const showOutput   = output && !showScramble;
+
+  // ForgeSmoke receives its own phase subset
+  const smokePhaseMap = {
+    'smoke-expanding':   'expanding',
+    'smoke-covered':     'covered',
+    'smoke-dissipating': 'dissipating',
+  };
+  const smokePhase = smokePhaseMap[forgePhase] ?? 'idle';
+
+  const anvilDisabled = smokePhasesActive.includes(forgePhase);
+
   return (
     <div className={styles.crucible}>
       <div className={styles.header}>
         <span className={styles.title}>The Grand Crucible</span>
-        <span className={styles.subtitle}>Configure your Components and click Forge.</span>
+        <span className={styles.subtitle}>Configure your Components, then strike the anvil to Forge.</span>
+      </div>
+
+      {/* Anvil + hammer — replaces the old Forge button */}
+      <div className={styles.anvilRow}>
+        <ForgeAnvil
+          onStrike={handleAnvilClick}
+          swinging={forgePhase === 'hammer-swinging'}
+          disabled={anvilDisabled}
+        />
       </div>
 
       <div className={styles.components}>
@@ -167,28 +257,24 @@ export function GrandCrucible({ onPasswordForged }) {
         <p className={styles.constraintMsg}>{constraintMsg}</p>
       </div>
 
-      <Button variant="full-width" onClick={handleForge} disabled={forgeState === 'forging'}>
-        Forge
-      </Button>
-
       <div className={styles.outputRow}>
-        <div className={`${styles.outputField} ${forgeState === 'forging' ? styles.forging : ''}`}>
-          {forgeState === 'forging' ? (
+        <div className={`${styles.outputField} ${showScramble ? styles.forging : ''}`}>
+          {showScramble ? (
             <span className={styles.swirlChar}>{swirlDisplay}</span>
-          ) : output ? (
+          ) : showOutput ? (
             <span>{output}</span>
           ) : (
             <span className={styles.placeholder}>Your forged credential will appear here.</span>
           )}
         </div>
-        {output && (
+        {output && forgePhase === 'resolved' && (
           <button type="button" className={styles.copyBtn} onClick={handleCopy} aria-label="Copy credential to clipboard">
             Copy
           </button>
         )}
       </div>
 
-      {hibpState.status !== 'idle' && (
+      {hibpState.status !== 'idle' && forgePhase === 'resolved' && (
         <div className={styles.strengthSection}>
           {hibpState.status === 'loading' && (
             <span className={styles.checking}>Checking for known breaches…</span>
@@ -229,6 +315,9 @@ export function GrandCrucible({ onPasswordForged }) {
           )}
         </div>
       )}
+
+      {/* Forge smoke overlay — covers the full viewport via position:fixed */}
+      <ForgeSmoke phase={smokePhase} />
     </div>
   );
 }

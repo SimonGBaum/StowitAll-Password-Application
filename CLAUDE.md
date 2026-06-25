@@ -107,14 +107,14 @@ AuthProvider → PasswordProvider → ToastProvider → SmokyVeilProvider → Ap
 | `AuthContext` | `user` (undefined/null/object), `loading`; `login`, `logout`, `signup`, `updateProfile` |
 | `PasswordContext` | `records[]` (decrypted); `addRecord`, `updateRecord`, `deleteRecord`, `forgePassword` |
 | `ToastContext` | `toasts[]`; `addToast(message, type)`, `removeToast(id)` — auto-dismiss 3500ms |
-| `SmokyVeilContext` | `phase`; `triggerVeil(callback)` — fade-in 150ms → hold → fade-out 150ms |
+| `WalkingTransitionContext` | `phase`; `triggerWalk(callback, durationMs)` — corridor overlay for all page navigations |
 
 Each context file exports a named hook — always use these instead of `useContext` directly:
 
 ```js
-import { useAuth }       from '../context/AuthContext';
-import { usePasswords }  from '../context/PasswordContext';
-import { useSmokyVeil }  from '../context/SmokyVeilContext';  // also re-exported from hooks/useSmokyVeil.js
+import { useAuth }               from '../context/AuthContext';
+import { usePasswords }          from '../context/PasswordContext';
+import { useWalkingTransition }  from '../context/WalkingTransitionContext';
 ```
 
 **`AuthContext.user` has three distinct states:** `undefined` = session not yet resolved (show nothing / spinner), `null` = unauthenticated, object = authenticated. `ProtectedRoute` and `RootRedirect` both depend on this distinction — treat `undefined` as "still loading", not as "logged out".
@@ -204,15 +204,21 @@ Full spec in `app_outline/style_guide.md`. Tokens live in `client/src/styles/tok
 
 All action buttons use the `.forge-btn` brushed-metal treatment (dark gradient base, `--color-secondary` border, `--color-glow-safe` inner glow). Destructive actions (Delete) swap inner glow to `--color-accent-error` only — base texture stays the same.
 
-### Animations (Three trigger points only for The Smoky Veil)
+### Animations
 
-1. Successful login
-2. Logout
-3. Successful password Forge
+**Walking Transition** — fires on every page navigation (login, logout, NavLink clicks, CTA buttons). Dark stone-corridor overlay with torch flicker and a walking jog. Duration varies by destination — all values in `client/src/lib/animationConstants.js`. `triggerWalk(callback, durationMs)` from `useWalkingTransition()`. The `NavLink` component (with a `to` prop) triggers it automatically; manual navigations (logout, CTA buttons) call `triggerWalk` explicitly.
 
-Always respect `prefers-reduced-motion` — `SmokyVeilContext.triggerVeil()` already handles this by skipping animation and running the callback immediately.
+**Smoky Veil (Forge)** — fires only when the anvil is struck in The Grand Crucible. Organic smoke erupts from viewport center, covers the screen, then dissipates. Implemented entirely inside `GrandCrucible` as a local `ForgeSmoke` component (`position: fixed`) — no context needed.
 
-The Grand Crucible forge sequence: character-swirl SVG animation (~400ms) → credential resolves → Smoky Veil fires. Must be cancellable via Escape or click-outside.
+**Grand Crucible forge sequence:**
+1. Click anvil → hammer swings down (`HAMMER_DURATION` = 350ms)
+2. Hammer contact → sparks, smoke expansion, character scramble all start simultaneously
+3. Smoke covers screen → scramble stops, new password placed in output field
+4. Smoke dissipates → password revealed
+
+All timing constants live in `client/src/lib/animationConstants.js` — the single place to tune any animation duration.
+
+Always respect `prefers-reduced-motion` — `triggerWalk` and GrandCrucible both skip animation and execute callbacks immediately when the media query matches. The forge instantly shows the password with no smoke or hammer animation.
 
 ### Layout
 

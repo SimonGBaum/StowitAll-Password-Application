@@ -2,7 +2,7 @@ import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom'
 import { useContext } from 'react';
 import { AuthContext } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute/ProtectedRoute';
-import { SmokyVeil } from './components/SmokyVeil/SmokyVeil';
+import { WalkingTransition } from './components/WalkingTransition/WalkingTransition';
 import { Toast } from './components/Toast/Toast';
 import { LoginSignUp } from './pages/LoginSignUp/LoginSignUp';
 import { Home } from './pages/Home/Home';
@@ -44,7 +44,7 @@ export default function App() {
   return (
     <>
       <RouterProvider router={router} />
-      <SmokyVeil />
+      <WalkingTransition />
       <Toast />
     </>
   );

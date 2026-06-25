@@ -1,0 +1,78 @@
+/* ── ForgeAnvil ─────────────────────────────────────────────────────────────
+   Clickable SVG anvil that replaces the old Forge button.
+   The hammer swings down on click; everything else is state-driven from
+   GrandCrucible's forgePhase.
+──────────────────────────────────────────────────────────────────────────── */
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+  /* Subtle outer glow on focus-visible for keyboard users */
+}
+
+.wrapper:focus-visible .scene {
+  filter: drop-shadow(0 0 6px var(--color-glow-safe));
+}
+
+.wrapper:hover .scene {
+  filter: drop-shadow(0 0 4px rgba(82, 183, 136, 0.45));
+  transition: filter 200ms ease;
+}
+
+.wrapper.disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.scene {
+  width: 100%;
+  max-width: 200px;
+  height: auto;
+  display: block;
+  transition: filter 200ms ease;
+}
+
+/* ── Hammer at rest — raised, ready to swing ── */
+.hammerRest {
+  transform: rotate(-40deg) translate(-10px, -8px);
+  transition: transform 100ms ease-out;
+}
+
+/* ── Hammer strike — swings down and stops on contact ── */
+@keyframes hammerSwing {
+  0%   {
+    transform: rotate(-40deg) translate(-10px, -8px);
+    animation-timing-function: ease-in;
+  }
+  80%  {
+    transform: rotate(6deg) translate(0px, 0px);
+    animation-timing-function: ease-out;
+  }
+  90%  {
+    /* Slight overshoot for a weighted-impact feel */
+    transform: rotate(10deg) translate(0px, 3px);
+    animation-timing-function: ease-in;
+  }
+  100% {
+    transform: rotate(8deg) translate(0px, 2px);
+  }
+}
+
+.hammerStrike {
+  animation: hammerSwing 350ms ease-in forwards;
+}
+
+/* ── Hint label ── */
+.hint {
+  font-family: var(--font-ui);
+  font-size: var(--text-meta);
+  color: var(--color-glow-safe);
+  letter-spacing: 0.05em;
+  opacity: 0.75;
+  pointer-events: none;
+}

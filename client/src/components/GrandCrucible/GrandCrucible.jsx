@@ -2,13 +2,20 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { usePasswords } from '../../context/PasswordContext';
 import { useSmokyVeil } from '../../context/SmokyVeilContext';
 import { useToast } from '../../context/ToastContext';
-import { Button } from '../Button/Button';
+import { ForgeAnvil } from '../ForgeAnvil/ForgeAnvil';
 import { supabase } from '../../lib/supabaseClient';
 import { computeSHA1Prefix, computePasswordStrength } from '../../lib/hibp';
 import styles from './GrandCrucible.module.css';
 
 const SWIRL_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
-const SWIRL_DURATION = 400;
+
+// ─── All forge animation timing — edit here to tune the sequence ──────────
+const TIMING = {
+  hammerSwingMs:   350,  // hammer arc to anvil contact
+  sparkDurationMs: 380,  // spark burst lifetime (completes just before swirl ends)
+  swirlDurationMs: 400,  // character scramble duration (starts at contact)
+  swirlIntervalMs:  60,  // scramble character refresh rate
+};
 
 function randomChar() {
   return SWIRL_CHARS[Math.floor(Math.random() * SWIRL_CHARS.length)];
@@ -21,7 +28,8 @@ export function GrandCrucible({ onPasswordForged }) {
   const [numbers, setNumbers] = useState(true);
   const [symbols, setSymbols] = useState(true);
   const [constraintMsg, setConstraintMsg] = useState('');
-  const [forgeState, setForgeState] = useState('idle'); // idle | forging | resolved
+  const [forgeState, setForgeState] = useState('idle');  // idle | forging | resolved
+  const [forgePhase, setForgePhase] = useState('idle');  // idle | swinging | struck
   const [output, setOutput] = useState('');
   const [swirlDisplay, setSwirlDisplay] = useState('');
   const [hibpState, setHibpState] = useState({ status: 'idle' }); // idle | loading | result | error
@@ -32,6 +40,7 @@ export function GrandCrucible({ onPasswordForged }) {
 
   const swirlIntervalRef = useRef(null);
   const forgeTimeoutRef = useRef(null);
+  const strikeTimeoutRef = useRef(null);
   const pendingPasswordRef = useRef('');
   const prefersReduced = typeof window !== 'undefined'
     ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -58,6 +67,8 @@ export function GrandCrucible({ onPasswordForged }) {
   const resolveForge = useCallback((password) => {
     clearInterval(swirlIntervalRef.current);
     clearTimeout(forgeTimeoutRef.current);
+    clearTimeout(strikeTimeoutRef.current);
+    setForgePhase('idle');
     setForgeState('resolved');
     setOutput(password);
     setSwirlDisplay('');
@@ -101,6 +112,7 @@ export function GrandCrucible({ onPasswordForged }) {
   }, [output, forgeState]);
 
   const handleForge = () => {
+    if (forgeState === 'forging') return;
     setHibpState({ status: 'idle' });
     const components = { length, uppercase, lowercase, numbers, symbols };
     const password = forgePassword(components);
@@ -114,16 +126,22 @@ export function GrandCrucible({ onPasswordForged }) {
       return;
     }
 
+    setForgePhase('swinging');
     setForgeState('forging');
-    setSwirlDisplay(Array.from({ length }, randomChar).join(''));
 
-    swirlIntervalRef.current = setInterval(() => {
+    // After hammer contacts the anvil: sparks + swirl begin simultaneously
+    strikeTimeoutRef.current = setTimeout(() => {
+      setForgePhase('struck');
       setSwirlDisplay(Array.from({ length }, randomChar).join(''));
-    }, 60);
 
-    forgeTimeoutRef.current = setTimeout(() => {
-      resolveForge(password);
-    }, SWIRL_DURATION);
+      swirlIntervalRef.current = setInterval(() => {
+        setSwirlDisplay(Array.from({ length }, randomChar).join(''));
+      }, TIMING.swirlIntervalMs);
+
+      forgeTimeoutRef.current = setTimeout(() => {
+        resolveForge(password);
+      }, TIMING.swirlDurationMs);
+    }, TIMING.hammerSwingMs);
   };
 
   const handleCopy = () => {
@@ -167,9 +185,15 @@ export function GrandCrucible({ onPasswordForged }) {
         <p className={styles.constraintMsg}>{constraintMsg}</p>
       </div>
 
-      <Button variant="full-width" onClick={handleForge} disabled={forgeState === 'forging'}>
-        Forge
-      </Button>
+      <div className={styles.forgeArea}>
+        <ForgeAnvil
+          forgePhase={forgePhase}
+          onClick={handleForge}
+          disabled={forgeState === 'forging'}
+          swingMs={TIMING.hammerSwingMs}
+          sparkMs={TIMING.sparkDurationMs}
+        />
+      </div>
 
       <div className={styles.outputRow}>
         <div className={`${styles.outputField} ${forgeState === 'forging' ? styles.forging : ''}`}>

@@ -1,0 +1,99 @@
+/* ─── Forge Anvil — timing constants ─────────────────────────────────────
+   These are FALLBACK values only. GrandCrucible.jsx passes the real values
+   as inline CSS custom properties (--forge-swing-dur, --forge-spark-dur),
+   keeping JS setTimeout delays and CSS animation durations in sync.
+   To retune the sequence, change the TIMING object in GrandCrucible.jsx.  */
+
+.wrapper {
+  --forge-swing-dur: 350ms;
+  --forge-spark-dur: 380ms;
+
+  display: inline-flex;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+
+.wrapper[data-disabled='true'] {
+  cursor: default;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.svg {
+  width: 200px;
+  height: auto;
+  overflow: visible; /* hammer extends beyond viewBox when raised */
+  transition: filter 0.2s ease;
+}
+
+/* ── Hover glow ── */
+.wrapper:not([data-disabled='true']):hover .svg {
+  filter: drop-shadow(0 0 10px var(--color-glow-safe));
+}
+
+/* ── Keyboard focus ring ── */
+.wrapper:focus-visible .svg {
+  filter: drop-shadow(0 0 6px var(--color-glow-safe));
+}
+
+/* ── Anvil ambient glow (matches AnvilLogo glowPulse cadence) ── */
+.anvilGlow {
+  animation: anvilGlowPulse 4s ease-in-out infinite;
+}
+
+@keyframes anvilGlowPulse {
+  0%, 100% { opacity: 0.30; }
+  50%       { opacity: 0.60; }
+}
+
+/* ─── Hammer ─────────────────────────────────────────────────────────────
+   transform-box: fill-box + transform-origin: 50% 0% puts the pivot at
+   the top-center of the hammer group's bounding box — the handle top.    */
+
+.hammerGroup {
+  transform-box: fill-box;
+  transform-origin: 50% 0%;
+  transform: rotate(-45deg);       /* resting: hammer raised and angled back */
+  transition: transform 0.25s ease-out; /* smooth return to idle after forge */
+}
+
+/* During downswing: drop the transition, run the weighted keyframe */
+.wrapper[data-phase='swinging'] .hammerGroup {
+  transition: none;
+  animation: hammerSwing var(--forge-swing-dur) cubic-bezier(0.55, 0, 1, 0.9) forwards;
+}
+
+/* At contact: hold the struck position (transition: none prevents snap-back) */
+.wrapper[data-phase='struck'] .hammerGroup {
+  transition: none;
+  transform: rotate(0deg);
+}
+
+/* ease-in via keyframes: accelerates through swing, slight overshoot at impact */
+@keyframes hammerSwing {
+  0%   { transform: rotate(-45deg); }
+  82%  { transform: rotate(3deg);   } /* weighted overshoot at impact */
+  100% { transform: rotate(0deg);   }
+}
+
+/* ─── Sparks ─────────────────────────────────────────────────────────────
+   Each spark has --dx / --dy (trajectory) and --spark-delay (stagger)
+   set via inline style on the element. Sparks are invisible at rest.     */
+
+.spark {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+
+.wrapper[data-phase='struck'] .spark {
+  animation: sparkBurst var(--forge-spark-dur) ease-out var(--spark-delay, 0ms) forwards;
+}
+
+@keyframes sparkBurst {
+  0%   { opacity: 1;   transform: translate(0,         0        ) scale(1.0); }
+  55%  { opacity: 0.8; }
+  100% { opacity: 0;   transform: translate(var(--dx), var(--dy)) scale(0.2); }
+}

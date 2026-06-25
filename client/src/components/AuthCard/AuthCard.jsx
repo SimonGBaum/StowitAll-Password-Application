@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { useTorchTransition } from '../../hooks/useTorchTransition';
+import { useSmokyVeil } from '../../context/SmokyVeilContext';
 import { useToast } from '../../context/ToastContext';
 import { Input } from '../Input/Input';
 import { Button } from '../Button/Button';
@@ -15,8 +16,9 @@ export function AuthCard() {
   const [errors, setErrors] = useState(EMPTY_ERRORS);
 
   const { login, signup } = useAuth();
-  const { triggerTransition } = useTorchTransition();
+  const { triggerVeil } = useSmokyVeil();
   const { addToast } = useToast();
+  const navigate = useNavigate();
 
   const set = (key) => (e) => setFields((prev) => ({ ...prev, [key]: e.target.value }));
 
@@ -37,7 +39,7 @@ export function AuthCard() {
 
     try {
       await login(fields.email, fields.password);
-      triggerTransition('/home', 3000);
+      triggerVeil(() => navigate('/home'));
     } catch {
       setErrors((prev) => ({ ...prev, form: 'Incorrect email or password.' }));
     }

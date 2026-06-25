@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useBlocker } from 'react-router-dom';
+import { useNavigate, useBlocker } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { useTorchTransition } from '../../hooks/useTorchTransition';
+import { useSmokyVeil } from '../../context/SmokyVeilContext';
 import { useToast } from '../../context/ToastContext';
 import { PageShell } from '../../components/PageShell/PageShell';
 import { AnvilLogo } from '../../components/AnvilLogo/AnvilLogo';
@@ -14,8 +14,9 @@ import styles from './Profile.module.css';
 
 export function Profile() {
   const { user, logout, updateProfile } = useAuth();
-  const { triggerTransition } = useTorchTransition();
+  const { triggerVeil } = useSmokyVeil();
   const { addToast } = useToast();
+  const navigate = useNavigate();
 
   const [isEditing, setIsEditing] = useState(false);
   const [fields, setFields] = useState({
@@ -28,10 +29,7 @@ export function Profile() {
   });
   const [passwordChanged, setPasswordChanged] = useState(false);
   const [errors, setErrors] = useState({});
-  const [pendingNav, setPendingNav] = useState(null); // { dest, dur, isLogout? }
 
-  // useBlocker catches browser-level navigation (back button) when editing.
-  // NavLink clicks are intercepted manually via guardedNav below.
   const blocker = useBlocker(isEditing);
 
   const set = (key) => (e) => {
@@ -67,48 +65,24 @@ export function Profile() {
     addToast('Your identity has been updated.', 'success');
   };
 
-  // Unified navigation guard: shows the unsaved-changes modal when editing
-  const guardedNav = (dest, dur, isLogout = false) => {
-    if (isEditing) {
-      setPendingNav({ dest, dur, isLogout });
-    } else {
-      if (isLogout) logout();
-      triggerTransition(dest, dur);
-    }
+  const handleLogout = () => {
+    if (isEditing) return; // blocker handles it
+    logout();
+    triggerVeil(() => navigate('/'));
   };
 
-  const handleModalConfirm = () => {
-    // Disable blocker by clearing editing state before triggerTransition calls navigate().
-    // triggerTransition delays the navigate() call by 80ms, so isEditing will have
-    // settled to false before useBlocker can intercept the navigate call.
+  const handleBlockerConfirm = () => {
     setIsEditing(false);
-    setErrors({});
-    const nav = pendingNav;
-    setPendingNav(null);
-
-    if (nav) {
-      if (nav.isLogout) logout();
-      triggerTransition(nav.dest, nav.dur);
-    } else if (blocker.state === 'blocked') {
-      // Browser back-button path: let the router proceed without a torch transition
-      blocker.proceed();
-    }
+    blocker.proceed();
   };
-
-  const handleModalCancel = () => {
-    setPendingNav(null);
-    if (blocker.state === 'blocked') blocker.reset();
-  };
-
-  const showModal = pendingNav !== null || blocker.state === 'blocked';
 
   return (
     <PageShell
       navCenter={<AnvilLogo />}
       navRight={<DateTimeGroup />}
-      footerLeft={<NavLink to="/contact" onClick={() => guardedNav('/contact', 1500)}>Contact Us</NavLink>}
-      footerCenter={<NavLink to="/home" onClick={() => guardedNav('/home', 1500)}>Home</NavLink>}
-      footerRight={<NavLink onClick={() => guardedNav('/', 3000, true)}>Log Out</NavLink>}
+      footerLeft={<NavLink to="/contact">Contact Us</NavLink>}
+      footerCenter={<NavLink to="/home">Home</NavLink>}
+      footerRight={<NavLink onClick={handleLogout}>Log Out</NavLink>}
     >
       <h1 className={styles.pageTitle}>My Profile</h1>
 
@@ -131,15 +105,15 @@ export function Profile() {
         </div>
       </div>
 
-      {showModal && (
+      {blocker.state === 'blocked' && (
         <Modal
           title="Unsaved Changes"
           message="You have unsaved changes on your profile. Leave without saving?"
           confirmLabel="Leave"
           cancelLabel="Stay & Save"
           isDestructive={false}
-          onConfirm={handleModalConfirm}
-          onCancel={handleModalCancel}
+          onConfirm={handleBlockerConfirm}
+          onCancel={() => blocker.reset()}
         />
       )}
     </PageShell>

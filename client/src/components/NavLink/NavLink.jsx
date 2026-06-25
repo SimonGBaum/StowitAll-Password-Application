@@ -1,28 +1,20 @@
-import { useLocation } from 'react-router-dom';
-import { useTorchTransition } from '../../hooks/useTorchTransition';
+import { Link, useMatch } from 'react-router-dom';
 import styles from './NavLink.module.css';
 
-export function NavLink({ to, onClick, duration = 1500, children }) {
-  const location = useLocation();
-  const { triggerTransition } = useTorchTransition();
+export function NavLink({ to, onClick, children }) {
+  const match = useMatch(to ?? '___no_match___');
+  const activeClass = match ? styles.active : '';
 
-  const isCurrentPage = to ? location.pathname === to : false;
-  const activeClass   = isCurrentPage ? styles.active : '';
-
-  const handleClick = () => {
-    if (onClick) {
-      onClick();
-    } else if (to) {
-      triggerTransition(to, duration);
-    }
-  };
+  if (to) {
+    return (
+      <Link to={to} className={`${styles.link} ${activeClass}`}>
+        {children}
+      </Link>
+    );
+  }
 
   return (
-    <button
-      type="button"
-      className={`${styles.link} ${activeClass}`}
-      onClick={handleClick}
-    >
+    <button type="button" className={styles.link} onClick={onClick}>
       {children}
     </button>
   );

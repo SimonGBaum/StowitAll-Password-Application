@@ -1,6 +1,8 @@
-import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Navigate, Outlet } from 'react-router-dom';
 import { useContext } from 'react';
 import { AuthContext } from './context/AuthContext';
+import { TorchTransitionProvider } from './context/TorchTransitionContext';
+import { TorchTransition } from './components/TorchTransition/TorchTransition';
 import { ProtectedRoute } from './components/ProtectedRoute/ProtectedRoute';
 import { SmokyVeil } from './components/SmokyVeil/SmokyVeil';
 import { Toast } from './components/Toast/Toast';
@@ -19,24 +21,33 @@ function RootRedirect() {
   return <LoginSignUp />;
 }
 
+// TorchTransitionProvider lives inside the router so it can call useNavigate
+function AppLayout() {
+  return (
+    <TorchTransitionProvider>
+      <Outlet />
+      <TorchTransition />
+    </TorchTransitionProvider>
+  );
+}
+
 const router = createBrowserRouter([
   {
-    path: '/',
-    element: <RootRedirect />,
-  },
-  {
-    element: <ProtectedRoute />,
+    element: <AppLayout />,
     children: [
-      { path: '/home',    element: <Home /> },
-      { path: '/create',  element: <PasswordCreationRoom /> },
-      { path: '/vault',   element: <Vault /> },
-      { path: '/profile', element: <Profile /> },
-      { path: '/contact', element: <ContactUs /> },
+      { path: '/',  element: <RootRedirect /> },
+      {
+        element: <ProtectedRoute />,
+        children: [
+          { path: '/home',    element: <Home /> },
+          { path: '/create',  element: <PasswordCreationRoom /> },
+          { path: '/vault',   element: <Vault /> },
+          { path: '/profile', element: <Profile /> },
+          { path: '/contact', element: <ContactUs /> },
+        ],
+      },
+      { path: '*', element: <ErrorPage /> },
     ],
-  },
-  {
-    path: '*',
-    element: <ErrorPage />,
   },
 ]);
 

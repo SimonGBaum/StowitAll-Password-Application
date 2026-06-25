@@ -1,5 +1,5 @@
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useTorchTransition } from '../../hooks/useTorchTransition';
 import { PageShell } from '../../components/PageShell/PageShell';
 import { AnvilLogo } from '../../components/AnvilLogo/AnvilLogo';
 import { DateTimeGroup } from '../../components/DateTimeGroup/DateTimeGroup';
@@ -15,7 +15,7 @@ const CONTACTS = [
 
 export function ContactUs() {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const { triggerTransition } = useTorchTransition();
 
   const usernameDisplay = (
     <span style={{ fontFamily: 'var(--font-ui)', fontSize: 'var(--text-nav)', color: 'var(--color-secondary)' }}>
@@ -30,7 +30,7 @@ export function ContactUs() {
       navRight={<DateTimeGroup />}
     >
       <div className={styles.homeBtn}>
-        <Button onClick={() => navigate('/home')}>Home</Button>
+        <Button onClick={() => triggerTransition('/home', 1500)}>Home</Button>
       </div>
 
       <p className={styles.intro}>

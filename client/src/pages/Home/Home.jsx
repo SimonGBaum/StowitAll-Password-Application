@@ -1,6 +1,5 @@
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { useSmokyVeil } from '../../context/SmokyVeilContext';
+import { useTorchTransition } from '../../hooks/useTorchTransition';
 import { PageShell } from '../../components/PageShell/PageShell';
 import { AnvilLogo } from '../../components/AnvilLogo/AnvilLogo';
 import { DateTimeGroup } from '../../components/DateTimeGroup/DateTimeGroup';
@@ -10,21 +9,20 @@ import styles from './Home.module.css';
 
 export function Home() {
   const { logout } = useAuth();
-  const { triggerVeil } = useSmokyVeil();
-  const navigate = useNavigate();
+  const { triggerTransition } = useTorchTransition();
 
   const handleLogout = () => {
     logout();
-    triggerVeil(() => navigate('/'));
+    triggerTransition('/', 3000);
   };
 
   return (
     <PageShell
-      navLeft={<NavLink to="/profile">User Profile</NavLink>}
+      navLeft={<NavLink to="/profile" duration={1500}>User Profile</NavLink>}
       navCenter={<AnvilLogo />}
       navRight={<DateTimeGroup />}
-      footerLeft={<NavLink to="/contact">Contact Us</NavLink>}
-      footerCenter={<NavLink to="/vault">My Vault</NavLink>}
+      footerLeft={<NavLink to="/contact" duration={1500}>Contact Us</NavLink>}
+      footerCenter={<NavLink to="/vault" duration={1500}>My Vault</NavLink>}
       footerRight={<NavLink onClick={handleLogout}>Log Out</NavLink>}
     >
       <div className={styles.hero}>
@@ -40,7 +38,7 @@ export function Home() {
       </p>
 
       <div className={styles.cta}>
-        <Button variant="full-width" onClick={() => navigate('/create')}>
+        <Button variant="full-width" onClick={() => triggerTransition('/create', 1000)}>
           Password Creation Room
         </Button>
       </div>

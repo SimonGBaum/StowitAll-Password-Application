@@ -5,7 +5,7 @@ import { createRoot } from 'react-dom/client';
 import { AuthProvider } from './context/AuthContext';
 import { PasswordProvider } from './context/PasswordContext';
 import { ToastProvider } from './context/ToastContext';
-import { SmokyVeilProvider } from './context/SmokyVeilContext';
+import { WalkingTransitionProvider } from './context/WalkingTransitionContext';
 import App from './App.jsx';
 
 createRoot(document.getElementById('root')).render(
@@ -13,9 +13,9 @@ createRoot(document.getElementById('root')).render(
     <AuthProvider>
       <PasswordProvider>
         <ToastProvider>
-          <SmokyVeilProvider>
+          <WalkingTransitionProvider>
             <App />
-          </SmokyVeilProvider>
+          </WalkingTransitionProvider>
         </ToastProvider>
       </PasswordProvider>
     </AuthProvider>

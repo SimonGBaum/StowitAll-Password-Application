@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate, useBlocker } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { useSmokyVeil } from '../../context/SmokyVeilContext';
+import { useWalkingTransition } from '../../context/WalkingTransitionContext';
 import { useToast } from '../../context/ToastContext';
+import { WALK_DURATION_LOGOUT } from '../../lib/animationConstants';
 import { PageShell } from '../../components/PageShell/PageShell';
 import { AnvilLogo } from '../../components/AnvilLogo/AnvilLogo';
 import { DateTimeGroup } from '../../components/DateTimeGroup/DateTimeGroup';
@@ -14,7 +15,7 @@ import styles from './Profile.module.css';
 
 export function Profile() {
   const { user, logout, updateProfile } = useAuth();
-  const { triggerVeil } = useSmokyVeil();
+  const { triggerWalk } = useWalkingTransition();
   const { addToast } = useToast();
   const navigate = useNavigate();
 
@@ -68,7 +69,7 @@ export function Profile() {
   const handleLogout = () => {
     if (isEditing) return; // blocker handles it
     logout();
-    triggerVeil(() => navigate('/'));
+    triggerWalk(() => navigate('/'), WALK_DURATION_LOGOUT);
   };
 
   const handleBlockerConfirm = () => {

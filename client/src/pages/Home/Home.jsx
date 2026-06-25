@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { useSmokyVeil } from '../../context/SmokyVeilContext';
+import { useWalkingTransition } from '../../context/WalkingTransitionContext';
+import { WALK_DURATION_LOGOUT, WALK_DURATION_CREATE } from '../../lib/animationConstants';
 import { PageShell } from '../../components/PageShell/PageShell';
 import { AnvilLogo } from '../../components/AnvilLogo/AnvilLogo';
 import { DateTimeGroup } from '../../components/DateTimeGroup/DateTimeGroup';
@@ -10,12 +11,12 @@ import styles from './Home.module.css';
 
 export function Home() {
   const { logout } = useAuth();
-  const { triggerVeil } = useSmokyVeil();
+  const { triggerWalk } = useWalkingTransition();
   const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
-    triggerVeil(() => navigate('/'));
+    triggerWalk(() => navigate('/'), WALK_DURATION_LOGOUT);
   };
 
   return (
@@ -40,7 +41,7 @@ export function Home() {
       </p>
 
       <div className={styles.cta}>
-        <Button variant="full-width" onClick={() => navigate('/create')}>
+        <Button variant="full-width" onClick={() => triggerWalk(() => navigate('/create'), WALK_DURATION_CREATE)}>
           Password Creation Room
         </Button>
       </div>

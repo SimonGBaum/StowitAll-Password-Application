@@ -25,6 +25,13 @@
   display: block;
 }
 
+/* Anvil sits centred between the header and the controls */
+.anvilRow {
+  display: flex;
+  justify-content: center;
+  margin: var(--space-md) 0 var(--space-lg);
+}
+
 .components {
   display: flex;
   flex-direction: column;

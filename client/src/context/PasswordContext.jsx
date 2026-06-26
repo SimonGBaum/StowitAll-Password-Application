@@ -8,12 +8,7 @@ export const PasswordContext = createContext(null);
 
 // Maps a DB row → the shape the UI expects
 async function rowToRecord(row, userId) {
-  let password = '';
-  try {
-    password = await decryptPassword(row.encrypted_password, userId);
-  } catch {
-    password = '[decryption error]';
-  }
+  const password = await decryptPassword(row.encrypted_password, userId).catch(() => '[decryption error]');
   return {
     id: row.id,
     passwordName: row.password_name,
@@ -31,7 +26,10 @@ export function PasswordProvider({ children }) {
   const [records, setRecords] = useState([]);
 
   useEffect(() => {
-    if (!user) { setRecords([]); return; }
+    if (!user) {
+      Promise.resolve([]).then(setRecords);
+      return;
+    }
 
     supabase
       .from('password_entries')

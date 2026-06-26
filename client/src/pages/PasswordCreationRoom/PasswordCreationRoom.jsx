@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { usePasswords } from '../../context/PasswordContext';
-import { useSmokyVeil } from '../../context/SmokyVeilContext';
+import { useTorchTransition } from '../../hooks/useTorchTransition';
 import { useToast } from '../../context/ToastContext';
 import { PageShell } from '../../components/PageShell/PageShell';
 import { AnvilLogo } from '../../components/AnvilLogo/AnvilLogo';
@@ -19,9 +18,8 @@ const EMPTY_FORM = { passwordName: '', siteName: '', password: '' };
 export function PasswordCreationRoom() {
   const { logout } = useAuth();
   const { records, addRecord, updateRecord, deleteRecord } = usePasswords();
-  const { triggerVeil } = useSmokyVeil();
+  const { triggerTransition } = useTorchTransition();
   const { addToast } = useToast();
-  const navigate = useNavigate();
 
   const [filterName, setFilterName] = useState('');
   const [filterSite, setFilterSite] = useState('');
@@ -32,7 +30,7 @@ export function PasswordCreationRoom() {
   const [revealedIds, setRevealedIds] = useState(new Set());
   const [deleteModal, setDeleteModal] = useState(false);
 
-  const handleLogout = () => { logout(); triggerVeil(() => navigate('/')); };
+  const handleLogout = () => { logout(); triggerTransition('/', 3000); };
 
   const filtered = records.filter((r) =>
     r.passwordName.toLowerCase().includes(filterName.toLowerCase()) &&
@@ -99,8 +97,8 @@ export function PasswordCreationRoom() {
     <PageShell
       navLeft={<AnvilLogo />}
       navRight={<DateTimeGroup />}
-      footerLeft={<NavLink to="/contact">Contact Us</NavLink>}
-      footerCenter={<NavLink to="/home">Home</NavLink>}
+      footerLeft={<NavLink to="/contact" duration={3000}>Contact Us</NavLink>}
+      footerCenter={<NavLink to="/home" duration={3000}>Home</NavLink>}
       footerRight={<NavLink onClick={handleLogout}>Log Out</NavLink>}
     >
       <h1 className={styles.pageTitle}>The Password Creation Room</h1>

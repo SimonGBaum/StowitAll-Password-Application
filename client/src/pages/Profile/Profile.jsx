@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useNavigate, useBlocker } from 'react-router-dom';
+import { useBlocker } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { useSmokyVeil } from '../../context/SmokyVeilContext';
+import { useTorchTransition } from '../../hooks/useTorchTransition';
 import { useToast } from '../../context/ToastContext';
 import { PageShell } from '../../components/PageShell/PageShell';
 import { AnvilLogo } from '../../components/AnvilLogo/AnvilLogo';
@@ -14,11 +14,11 @@ import styles from './Profile.module.css';
 
 export function Profile() {
   const { user, logout, updateProfile } = useAuth();
-  const { triggerVeil } = useSmokyVeil();
+  const { triggerTransition } = useTorchTransition();
   const { addToast } = useToast();
-  const navigate = useNavigate();
 
   const [isEditing, setIsEditing] = useState(false);
+  const [pendingNav, setPendingNav] = useState(null);
   const [fields, setFields] = useState({
     firstName: user?.firstName || '',
     lastName:  user?.lastName  || '',
@@ -66,22 +66,37 @@ export function Profile() {
   };
 
   const handleLogout = () => {
-    if (isEditing) return; // blocker handles it
+    if (isEditing) return;
     logout();
-    triggerVeil(() => navigate('/'));
+    triggerTransition('/', 3000);
+  };
+
+  const handleNavAttempt = (dest, dur) => {
+    if (isEditing) { setPendingNav({ dest, dur }); return; }
+    triggerTransition(dest, dur);
   };
 
   const handleBlockerConfirm = () => {
     setIsEditing(false);
-    blocker.proceed();
+    if (pendingNav) {
+      triggerTransition(pendingNav.dest, pendingNav.dur);
+      setPendingNav(null);
+    } else if (blocker.state === 'blocked') {
+      blocker.proceed();
+    }
+  };
+
+  const handleBlockerCancel = () => {
+    setPendingNav(null);
+    if (blocker.state === 'blocked') blocker.reset();
   };
 
   return (
     <PageShell
       navCenter={<AnvilLogo />}
       navRight={<DateTimeGroup />}
-      footerLeft={<NavLink to="/contact">Contact Us</NavLink>}
-      footerCenter={<NavLink to="/home">Home</NavLink>}
+      footerLeft={<NavLink to="/contact" onClick={() => handleNavAttempt('/contact', 3000)}>Contact Us</NavLink>}
+      footerCenter={<NavLink to="/home" onClick={() => handleNavAttempt('/home', 3000)}>Home</NavLink>}
       footerRight={<NavLink onClick={handleLogout}>Log Out</NavLink>}
     >
       <h1 className={styles.pageTitle}>My Profile</h1>
@@ -105,7 +120,7 @@ export function Profile() {
         </div>
       </div>
 
-      {blocker.state === 'blocked' && (
+      {(pendingNav !== null || blocker.state === 'blocked') && (
         <Modal
           title="Unsaved Changes"
           message="You have unsaved changes on your profile. Leave without saving?"
@@ -113,7 +128,7 @@ export function Profile() {
           cancelLabel="Stay & Save"
           isDestructive={false}
           onConfirm={handleBlockerConfirm}
-          onCancel={() => blocker.reset()}
+          onCancel={handleBlockerCancel}
         />
       )}
     </PageShell>

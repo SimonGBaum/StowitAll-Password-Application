@@ -102,7 +102,7 @@ export function Vault() {
 
   return (
     <PageShell
-      navLeft={<NavLink to="/home">Home</NavLink>}
+      navLeft={<NavLink to="/home" duration={3000}>Home</NavLink>}
       navCenter={<AnvilLogo />}
       navRight={<DateTimeGroup />}
       noFooter

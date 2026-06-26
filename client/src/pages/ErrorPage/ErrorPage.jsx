@@ -1,19 +1,19 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useTorchTransition } from '../../hooks/useTorchTransition';
 import { DateTimeGroup } from '../../components/DateTimeGroup/DateTimeGroup';
 import { Button } from '../../components/Button/Button';
 import styles from './ErrorPage.module.css';
 
 export function ErrorPage() {
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { triggerTransition } = useTorchTransition();
 
   useEffect(() => {
     if (user) logout();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleHome = () => navigate(user ? '/home' : '/');
+  const handleHome = () => triggerTransition(user ? '/home' : '/', 3000);
 
   return (
     <div className={styles.dungeonScope}>

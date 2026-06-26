@@ -1,11 +1,6 @@
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-<<<<<<< HEAD
-import { useWalkingTransition } from '../../context/WalkingTransitionContext';
-import { WALK_DURATION_LOGOUT, WALK_DURATION_CREATE } from '../../lib/animationConstants';
-=======
 import { useSmokyVeil } from '../../context/SmokyVeilContext';
->>>>>>> 5ee6f70 (save everything)
+
 import { PageShell } from '../../components/PageShell/PageShell';
 import { AnvilLogo } from '../../components/AnvilLogo/AnvilLogo';
 import { DateTimeGroup } from '../../components/DateTimeGroup/DateTimeGroup';
@@ -15,29 +10,22 @@ import styles from './Home.module.css';
 
 export function Home() {
   const { logout } = useAuth();
-<<<<<<< HEAD
-  const { triggerWalk } = useWalkingTransition();
-=======
   const { triggerVeil } = useSmokyVeil();
->>>>>>> 5ee6f70 (save everything)
   const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
-<<<<<<< HEAD
-    triggerWalk(() => navigate('/'), WALK_DURATION_LOGOUT);
-=======
     triggerVeil(() => navigate('/'));
->>>>>>> 5ee6f70 (save everything)
+
   };
 
   return (
     <PageShell
-      navLeft={<NavLink to="/profile">User Profile</NavLink>}
+      navLeft={<NavLink to="/profile" duration={3000}>User Profile</NavLink>}
       navCenter={<AnvilLogo />}
       navRight={<DateTimeGroup />}
-      footerLeft={<NavLink to="/contact">Contact Us</NavLink>}
-      footerCenter={<NavLink to="/vault">My Vault</NavLink>}
+      footerLeft={<NavLink to="/contact" duration={3000}>Contact Us</NavLink>}
+      footerCenter={<NavLink to="/vault" duration={3000}>My Vault</NavLink>}
       footerRight={<NavLink onClick={handleLogout}>Log Out</NavLink>}
     >
       <div className={styles.hero}>
@@ -53,11 +41,8 @@ export function Home() {
       </p>
 
       <div className={styles.cta}>
-<<<<<<< HEAD
-        <Button variant="full-width" onClick={() => triggerWalk(() => navigate('/create'), WALK_DURATION_CREATE)}>
-=======
         <Button variant="full-width" onClick={() => navigate('/create')}>
->>>>>>> 5ee6f70 (save everything)
+
           Password Creation Room
         </Button>
       </div>

@@ -1,9 +1,11 @@
-import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Navigate, Outlet } from 'react-router-dom';
 import { useContext } from 'react';
 import { AuthContext } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute/ProtectedRoute';
 import { WalkingTransition } from './components/WalkingTransition/WalkingTransition';
 import { Toast } from './components/Toast/Toast';
+import { TorchTransitionProvider } from './context/TorchTransitionContext';
+import { TorchTransition } from './components/TorchTransition/TorchTransition';
 import { LoginSignUp } from './pages/LoginSignUp/LoginSignUp';
 import { Home } from './pages/Home/Home';
 import { PasswordCreationRoom } from './pages/PasswordCreationRoom/PasswordCreationRoom';
@@ -19,24 +21,32 @@ function RootRedirect() {
   return <LoginSignUp />;
 }
 
+function RootLayout() {
+  return (
+    <TorchTransitionProvider>
+      <TorchTransition />
+      <Outlet />
+    </TorchTransitionProvider>
+  );
+}
+
 const router = createBrowserRouter([
   {
-    path: '/',
-    element: <RootRedirect />,
-  },
-  {
-    element: <ProtectedRoute />,
+    element: <RootLayout />,
     children: [
-      { path: '/home',    element: <Home /> },
-      { path: '/create',  element: <PasswordCreationRoom /> },
-      { path: '/vault',   element: <Vault /> },
-      { path: '/profile', element: <Profile /> },
-      { path: '/contact', element: <ContactUs /> },
+      { path: '/', element: <RootRedirect /> },
+      {
+        element: <ProtectedRoute />,
+        children: [
+          { path: '/home',    element: <Home /> },
+          { path: '/create',  element: <PasswordCreationRoom /> },
+          { path: '/vault',   element: <Vault /> },
+          { path: '/profile', element: <Profile /> },
+          { path: '/contact', element: <ContactUs /> },
+        ],
+      },
+      { path: '*', element: <ErrorPage /> },
     ],
-  },
-  {
-    path: '*',
-    element: <ErrorPage />,
   },
 ]);
 

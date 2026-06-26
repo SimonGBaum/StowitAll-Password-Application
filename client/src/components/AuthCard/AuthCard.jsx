@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useWalkingTransition } from '../../context/WalkingTransitionContext';
 import { useToast } from '../../context/ToastContext';
@@ -19,7 +18,6 @@ export function AuthCard() {
   const { login, signup } = useAuth();
   const { triggerWalk } = useWalkingTransition();
   const { addToast } = useToast();
-  const navigate = useNavigate();
 
   const set = (key) => (e) => setFields((prev) => ({ ...prev, [key]: e.target.value }));
 

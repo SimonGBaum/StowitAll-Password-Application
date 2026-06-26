@@ -1,30 +1,24 @@
-import { Link, useMatch, useNavigate } from 'react-router-dom';
-import { useWalkingTransition } from '../../context/WalkingTransitionContext';
+import { useMatch } from 'react-router-dom';
+import { useTorchTransition } from '../../context/TorchTransitionContext';
 import { ROUTE_WALK_DURATIONS, WALK_DURATION_DEFAULT } from '../../lib/animationConstants';
 import styles from './NavLink.module.css';
 
-export function NavLink({ to, onClick, children }) {
-  const navigate = useNavigate();
-  const { triggerWalk } = useWalkingTransition();
+export function NavLink({ to, onClick, children, duration }) {
+  const { triggerTransition } = useTorchTransition();
   const match = useMatch(to ?? '___no_match___');
   const activeClass = match ? styles.active : '';
 
-  if (to) {
-    const handleClick = (e) => {
-      e.preventDefault();
-      const duration = ROUTE_WALK_DURATIONS[to] ?? WALK_DURATION_DEFAULT;
-      triggerWalk(() => navigate(to), duration);
-    };
-
-    return (
-      <Link to={to} className={`${styles.link} ${activeClass}`} onClick={handleClick}>
-        {children}
-      </Link>
-    );
-  }
+  const handleClick = () => {
+    if (onClick) {
+      onClick();
+    } else if (to) {
+      const dur = duration ?? ROUTE_WALK_DURATIONS[to] ?? WALK_DURATION_DEFAULT;
+      triggerTransition(to, dur);
+    }
+  };
 
   return (
-    <button type="button" className={styles.link} onClick={onClick}>
+    <button type="button" className={`${styles.link} ${activeClass}`} onClick={handleClick}>
       {children}
     </button>
   );

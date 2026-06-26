@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { usePasswords } from '../../context/PasswordContext';
-import { useWalkingTransition } from '../../context/WalkingTransitionContext';
+import { useTorchTransition } from '../../context/TorchTransitionContext';
 import { useToast } from '../../context/ToastContext';
 import { WALK_DURATION_LOGOUT } from '../../lib/animationConstants';
 import { PageShell } from '../../components/PageShell/PageShell';
@@ -20,9 +19,8 @@ const EMPTY_FORM = { passwordName: '', siteName: '', password: '' };
 export function PasswordCreationRoom() {
   const { logout } = useAuth();
   const { records, addRecord, updateRecord, deleteRecord } = usePasswords();
-  const { triggerWalk } = useWalkingTransition();
+  const { triggerTransition } = useTorchTransition();
   const { addToast } = useToast();
-  const navigate = useNavigate();
 
   const [filterName, setFilterName] = useState('');
   const [filterSite, setFilterSite] = useState('');
@@ -33,7 +31,8 @@ export function PasswordCreationRoom() {
   const [revealedIds, setRevealedIds] = useState(new Set());
   const [deleteModal, setDeleteModal] = useState(false);
 
-  const handleLogout = () => { logout(); triggerWalk(() => navigate('/'), WALK_DURATION_LOGOUT); };
+  const handleLogout = () => { logout(); triggerTransition('/', WALK_DURATION_LOGOUT); };
+
 
   const filtered = records.filter((r) =>
     r.passwordName.toLowerCase().includes(filterName.toLowerCase()) &&

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useTorchTransition } from '../../hooks/useTorchTransition';
+import { useWalkingTransition } from '../../context/WalkingTransitionContext';
 import { useToast } from '../../context/ToastContext';
+import { WALK_DURATION_LOGIN } from '../../lib/animationConstants';
 import { Input } from '../Input/Input';
 import { Button } from '../Button/Button';
 import styles from './AuthCard.module.css';
@@ -15,7 +16,7 @@ export function AuthCard() {
   const [errors, setErrors] = useState(EMPTY_ERRORS);
 
   const { login, signup } = useAuth();
-  const { triggerTransition } = useTorchTransition();
+  const { triggerWalk } = useWalkingTransition();
   const { addToast } = useToast();
 
   const set = (key) => (e) => setFields((prev) => ({ ...prev, [key]: e.target.value }));
@@ -37,7 +38,7 @@ export function AuthCard() {
 
     try {
       await login(fields.email, fields.password);
-      triggerTransition('/home', 3000);
+      triggerWalk(() => navigate('/home'), WALK_DURATION_LOGIN);
     } catch {
       setErrors((prev) => ({ ...prev, form: 'Incorrect email or password.' }));
     }

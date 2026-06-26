@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { usePasswords } from '../../context/PasswordContext';
-import { useTorchTransition } from '../../hooks/useTorchTransition';
+import { useSmokyVeil } from '../../context/SmokyVeilContext';
+
 import { useToast } from '../../context/ToastContext';
+import { WALK_DURATION_LOGOUT } from '../../lib/animationConstants';
 import { PageShell } from '../../components/PageShell/PageShell';
 import { AnvilLogo } from '../../components/AnvilLogo/AnvilLogo';
 import { DateTimeGroup } from '../../components/DateTimeGroup/DateTimeGroup';
@@ -18,7 +20,8 @@ const EMPTY_FORM = { passwordName: '', siteName: '', password: '' };
 export function PasswordCreationRoom() {
   const { logout } = useAuth();
   const { records, addRecord, updateRecord, deleteRecord } = usePasswords();
-  const { triggerTransition } = useTorchTransition();
+  const { triggerVeil } = useSmokyVeil();
+
   const { addToast } = useToast();
 
   const [filterName, setFilterName] = useState('');
@@ -30,7 +33,8 @@ export function PasswordCreationRoom() {
   const [revealedIds, setRevealedIds] = useState(new Set());
   const [deleteModal, setDeleteModal] = useState(false);
 
-  const handleLogout = () => { logout(); triggerTransition('/', 3000); };
+  const handleLogout = () => { logout(); triggerVeil(() => navigate('/')); };
+
 
   const filtered = records.filter((r) =>
     r.passwordName.toLowerCase().includes(filterName.toLowerCase()) &&

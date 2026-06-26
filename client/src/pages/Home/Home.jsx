@@ -1,5 +1,6 @@
 import { useAuth } from '../../context/AuthContext';
-import { useTorchTransition } from '../../hooks/useTorchTransition';
+import { useSmokyVeil } from '../../context/SmokyVeilContext';
+
 import { PageShell } from '../../components/PageShell/PageShell';
 import { AnvilLogo } from '../../components/AnvilLogo/AnvilLogo';
 import { DateTimeGroup } from '../../components/DateTimeGroup/DateTimeGroup';
@@ -9,11 +10,13 @@ import styles from './Home.module.css';
 
 export function Home() {
   const { logout } = useAuth();
-  const { triggerTransition } = useTorchTransition();
+  const { triggerVeil } = useSmokyVeil();
+  const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
-    triggerTransition('/', 3000);
+    triggerVeil(() => navigate('/'));
+
   };
 
   return (
@@ -38,7 +41,8 @@ export function Home() {
       </p>
 
       <div className={styles.cta}>
-        <Button variant="full-width" onClick={() => triggerTransition('/create', 3000)}>
+        <Button variant="full-width" onClick={() => navigate('/create')}>
+
           Password Creation Room
         </Button>
       </div>

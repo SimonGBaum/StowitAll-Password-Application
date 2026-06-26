@@ -2,7 +2,7 @@ import { createBrowserRouter, RouterProvider, Navigate, Outlet } from 'react-rou
 import { useContext } from 'react';
 import { AuthContext } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute/ProtectedRoute';
-import { SmokyVeil } from './components/SmokyVeil/SmokyVeil';
+import { WalkingTransition } from './components/WalkingTransition/WalkingTransition';
 import { Toast } from './components/Toast/Toast';
 import { TorchTransitionProvider } from './context/TorchTransitionContext';
 import { TorchTransition } from './components/TorchTransition/TorchTransition';
@@ -54,7 +54,7 @@ export default function App() {
   return (
     <>
       <RouterProvider router={router} />
-      <SmokyVeil />
+      <WalkingTransition />
       <Toast />
     </>
   );

@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useBlocker } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { useTorchTransition } from '../../hooks/useTorchTransition';
+import { useSmokyVeil } from '../../context/SmokyVeilContext';
+
 import { useToast } from '../../context/ToastContext';
+import { WALK_DURATION_LOGOUT } from '../../lib/animationConstants';
 import { PageShell } from '../../components/PageShell/PageShell';
 import { AnvilLogo } from '../../components/AnvilLogo/AnvilLogo';
 import { DateTimeGroup } from '../../components/DateTimeGroup/DateTimeGroup';
@@ -14,7 +16,8 @@ import styles from './Profile.module.css';
 
 export function Profile() {
   const { user, logout, updateProfile } = useAuth();
-  const { triggerTransition } = useTorchTransition();
+  const { triggerVeil } = useSmokyVeil();
+
   const { addToast } = useToast();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -68,12 +71,8 @@ export function Profile() {
   const handleLogout = () => {
     if (isEditing) return;
     logout();
-    triggerTransition('/', 3000);
-  };
+    triggerVeil(() => navigate('/'));
 
-  const handleNavAttempt = (dest, dur) => {
-    if (isEditing) { setPendingNav({ dest, dur }); return; }
-    triggerTransition(dest, dur);
   };
 
   const handleBlockerConfirm = () => {

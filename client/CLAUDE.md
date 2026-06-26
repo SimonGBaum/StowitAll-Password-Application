@@ -65,6 +65,8 @@ import { useSmokyVeil } from '../hooks/useSmokyVeil';
 
 ### Reference docs
 
-- `../app_outline/style_guide.md` — full component specs, animation timings, and design decisions
-- `../skeleton/user_journey.md` — happy paths, error branches, nav map
-- `../skeleton/pages/` — wireframe PNGs for each page state
+Detailed interaction specs and wireframes:
+- `skeleton/user_journey.md` — happy paths, error branches, nav map
+- `skeleton/style_guide.md` — full component specs, animation timings
+- `skeleton/pages/` — wireframe PNGs for each page state
+

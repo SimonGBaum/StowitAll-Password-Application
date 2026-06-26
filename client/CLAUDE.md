@@ -17,7 +17,7 @@ No test runner is configured — `npm test` will fail.
 
 ## Environment
 
-`client/.env` must contain:
+`.env` must contain:
 
 ```
 VITE_SUPABASE_URL=https://wjjwifbihxnujfvrxtfq.supabase.co
@@ -28,30 +28,30 @@ Vite only exposes `VITE_`-prefixed vars to the browser bundle.
 
 ## Architecture
 
-This is a fully-built React 19 + Vite SPA. **There is no Django backend** — all data goes through the Supabase JS client directly. The `src/services/api.js` Axios skeleton is unused.
+This is a React 19 + Vite SPA. **There is no Django backend** — all data goes through the Supabase JS client directly. `src/services/api.js` is an unused Axios skeleton.
 
 ### Key libraries
 
 - `@supabase/supabase-js` — auth + database (primary data layer)
-- `react-router-dom` v7 — client-side routing via `createBrowserRouter`
+- `react-router-dom` v7 — client-side routing via `createBrowserRouter` in `src/App.jsx`
 - Web Crypto API — AES-GCM encryption in `src/lib/crypto.js`
+
+### Component conventions
+
+- Every component lives in its own folder under `src/components/` with a matching `.module.css`.
+- Pages follow the same pattern under `src/pages/`.
+- All authenticated pages wrap their content in `<PageShell>` — see root CLAUDE.md for the full prop API.
+- The custom `<NavLink>` component (not React Router's) automatically triggers the walking transition on navigation; use it instead of `<Link>` or `<a>` for in-app links.
 
 ### Adding a new authenticated page
 
 1. Create `src/pages/MyPage/MyPage.jsx` + `MyPage.module.css`
-2. Wrap content in `<PageShell>` with the appropriate nav/footer slot props (see root CLAUDE.md)
+2. Wrap content in `<PageShell>` with the appropriate nav/footer slot props
 3. Add the route inside the `<ProtectedRoute>` element in `src/App.jsx`
 
 ### Reference docs
 
-<<<<<<< HEAD
 Detailed interaction specs and wireframes live in `../app_outline/`:
 - `app_outline/user_journey.md` — happy paths, error branches, nav map
 - `app_outline/style_guide.md` — full component specs, animation timings
 - `app_outline/pages/` — wireframe PNGs for each page state
-=======
-Detailed interaction specs and wireframes:
-- `skeleton/user_journey.md` — happy paths, error branches, nav map
-- `skeleton/style_guide.md` — full component specs, animation timings
-- `skeleton/pages/` — wireframe PNGs for each page state
->>>>>>> 5ee6f70 (save everything)

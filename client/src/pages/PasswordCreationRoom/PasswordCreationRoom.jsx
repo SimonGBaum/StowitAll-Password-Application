@@ -2,11 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { usePasswords } from '../../context/PasswordContext';
-<<<<<<< HEAD
 import { useWalkingTransition } from '../../context/WalkingTransitionContext';
-=======
-import { useSmokyVeil } from '../../context/SmokyVeilContext';
->>>>>>> 5ee6f70 (save everything)
 import { useToast } from '../../context/ToastContext';
 import { WALK_DURATION_LOGOUT } from '../../lib/animationConstants';
 import { PageShell } from '../../components/PageShell/PageShell';
@@ -24,11 +20,7 @@ const EMPTY_FORM = { passwordName: '', siteName: '', password: '' };
 export function PasswordCreationRoom() {
   const { logout } = useAuth();
   const { records, addRecord, updateRecord, deleteRecord } = usePasswords();
-<<<<<<< HEAD
   const { triggerWalk } = useWalkingTransition();
-=======
-  const { triggerVeil } = useSmokyVeil();
->>>>>>> 5ee6f70 (save everything)
   const { addToast } = useToast();
   const navigate = useNavigate();
 
@@ -41,11 +33,7 @@ export function PasswordCreationRoom() {
   const [revealedIds, setRevealedIds] = useState(new Set());
   const [deleteModal, setDeleteModal] = useState(false);
 
-<<<<<<< HEAD
   const handleLogout = () => { logout(); triggerWalk(() => navigate('/'), WALK_DURATION_LOGOUT); };
-=======
-  const handleLogout = () => { logout(); triggerVeil(() => navigate('/')); };
->>>>>>> 5ee6f70 (save everything)
 
   const filtered = records.filter((r) =>
     r.passwordName.toLowerCase().includes(filterName.toLowerCase()) &&
